@@ -1,0 +1,3 @@
+uni_start_stream <00x>
+  man_append_data {{FULLREPORT_DATA}}
+uni_end_stream <00x>

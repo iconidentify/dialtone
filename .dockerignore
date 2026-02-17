@@ -1,0 +1,72 @@
+# Build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/
+
+# Documentation (keep in repo, exclude from image)
+README.md
+README-DOCKER.md
+CLAUDE.md
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Test files
+src/test/
+
+# Node.js and frontend artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.eslintcache
+src/main/resources/static/dist/
+src/main/resources/public/
+
+# CI/CD
+.github/
+
+# Database files (created at runtime)
+*.db
+*.sqlite
+*.sqlite3
+db/
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
+*~

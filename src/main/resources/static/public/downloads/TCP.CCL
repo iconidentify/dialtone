@@ -1,0 +1,61 @@
+!----------------------------------------------------------------------
+!   TCP.CCL
+!----------------------------------------------------------------------
+
+Title           "TCP/IP"
+ID              5
+DriverType      20
+
+!----------------------------------------------------------------------
+!                        Connect Sequence:
+!----------------------------------------------------------------------
+-LABEL 0
+Revision 1
+DsplyMsg Step 1: Initializing TCP/IP ...
+CanBtn   2               { if cancel button - just exit }
+DsplyPic 1
+NetConnect 1 5190 10 dialtone.live
+Pause 100
+NetError 3 4  
+
+!----------------------------------------------------------------------
+!           Did we connect to the HOST successfully
+!----------------------------------------------------------------------
+-LABEL 1
+DsplyPic 2
+DsplyMsg Step 2: Connecting using TCP/IP ...
+DsplyPic 3
+DsplyMsg Checking password ...
+Exit 0
+
+!----------------------------------------------------------------------
+!           User hit the Cancel Button, Get out (No Hangup required)
+!----------------------------------------------------------------------
+-Label 2        
+Exit -1
+
+!----------------------------------------------------------------------
+!                Should we display the 800 number
+!----------------------------------------------------------------------
+-LABEL 3
+ErrorSet 10
+Alert 2 \13\13If the problem persists, call ~APPL customer service at ~ACUS.
+Exit -1
+
+!----------------------------------------------------------------------
+!           Just have the User call their System Administrator
+!----------------------------------------------------------------------
+-LABEL 4
+ErrorSet 10
+Alert 2 \13\13If the problem persists, call your System Administrator.
+Exit -1
+
+!----------------------------------------------------------------------
+!
+*-Label 0                {Hangup Sequence}
+*CanBtn 2
+*NetDisc
+*Exit 0
+!
+###
+

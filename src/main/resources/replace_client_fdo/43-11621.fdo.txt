@@ -1,0 +1,131 @@
+uni_start_stream <>
+  man_preset_gid <43-1283>
+  if_last_return_true_then <1>
+  man_make_focus <>
+man_update_display <>
+uni_wait_off <>
+uni_abort_stream <0>
+uni_sync_skip <1>
+uni_start_stream <>
+  man_set_context_globalid <2>
+  man_preset_gid <43-1283>
+  man_start_last <trigger, "Art">
+    mat_object_id <43-1283>
+    mat_shortcut_key <"t">
+    mat_relative_tag <25100>
+    act_replace_select_action
+      <
+      uni_start_stream <>
+        vrm_action_command <25100>
+      uni_end_stream <>
+      >
+    man_start_object <trigger, "Open Art...">
+      mat_relative_tag <25001>
+      mat_shortcut_key <"A">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <25001>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Open Animation...">
+      mat_relative_tag <25008>
+      mat_shortcut_key <"M">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <25008>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Insert Art...">
+      mat_relative_tag <25007>
+      mat_shortcut_key <"I">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <25007>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Save">
+      mat_relative_tag <25002>
+      mat_shortcut_key <"S">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <25002>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Save As">
+      mat_relative_tag <25003>
+      mat_shortcut_key <"A">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <25003>
+        uni_end_stream <>
+        >
+      man_start_object <trigger, "File...">
+        mat_relative_tag <25004>
+        mat_shortcut_key <"F">
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            vrm_action_command <25004>
+          uni_end_stream <>
+          >
+      man_start_sibling <trigger, "Area Manager...">
+        mat_relative_tag <25005>
+        mat_shortcut_key <"A">
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            vrm_action_command <25005>
+          uni_end_stream <>
+          >
+      man_end_object <>
+    man_start_sibling <ornament, "">
+    man_start_sibling <trigger, "View">
+      mat_relative_tag <25110>
+      mat_shortcut_key <"V">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <25110>
+        uni_end_stream <>
+        >
+      man_start_object <trigger, "Properties">
+        mat_relative_tag <25130>
+        mat_shortcut_key <"P">
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            vrm_action_command <25130>
+          uni_end_stream <>
+          >
+      man_start_sibling <trigger, "Tree View">
+        mat_relative_tag <25120>
+        mat_shortcut_key <"T">
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            vrm_action_command <25120>
+          uni_end_stream <>
+          >
+      man_end_object <>
+    man_start_sibling <ornament, "">
+    man_start_sibling <trigger, "About...">
+      mat_relative_tag <25150>
+      mat_shortcut_key <"A">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <25150>
+        uni_end_stream <>
+        >
+    man_end_object <>
+  man_end_object <>
+man_update_display <2>
+uni_wait_off <>
+uni_end_stream <>
+uni_end_stream <>
+

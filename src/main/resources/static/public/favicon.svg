@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Orange glow/triangle behind -->
+  <path fill="#fc9d2c" d="M256 40L380 180H132L256 40z"/>
+  <ellipse fill="#fc9d2c" cx="256" cy="340" rx="180" ry="40"/>
+  
+  <!-- Modem body -->
+  <path fill="#001e37" d="M96 180c-20 0-36 16-36 36v120c0 20 16 36 36 36h320c20 0 36-16 36-36V216c0-20-16-36-36-36H96z"/>
+  
+  <!-- Modem face plate -->
+  <rect fill="#fffae3" x="76" y="196" width="360" height="104" rx="16"/>
+  
+  <!-- Inner dark panel -->
+  <rect fill="#001e37" x="92" y="212" width="328" height="72" rx="12"/>
+  
+  <!-- Power indicator (large circle) -->
+  <circle fill="#fffae3" cx="140" cy="248" r="24"/>
+  <circle fill="#001e37" cx="140" cy="248" r="14"/>
+  
+  <!-- Status LEDs -->
+  <circle fill="#fffae3" cx="320" cy="248" r="10"/>
+  <circle fill="#fffae3" cx="360" cy="248" r="10"/>
+  <circle fill="#fffae3" cx="400" cy="248" r="10"/>
+  
+  <!-- Feet -->
+  <rect fill="#001e37" x="120" y="352" width="40" height="20" rx="4"/>
+  <rect fill="#001e37" x="352" y="352" width="40" height="20" rx="4"/>
+</svg>
+

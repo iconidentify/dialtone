@@ -1,0 +1,262 @@
+uni_start_stream <00x>
+  uni_wait_on
+  man_set_context_globalid <1>
+  var_number_set <A, 0>
+  var_number_save <A, 161>
+  man_end_context
+  man_set_context_globalid <53>
+  man_start_object <ind_group, "">
+    mat_style_id <32-5447>
+    mat_orientation <vff>
+    mat_precise_width <518>
+    mat_precise_height <300>
+    mat_object_id <32-30>
+    mat_style_id <32-5447>
+    mat_position <center_center>
+    mat_bool_resize_vertical <no>
+    mat_bool_non_closeable <yes>
+    mat_bool_precise <yes>
+
+    man_start_object <trigger, "">
+      mat_precise_x <8>
+      mat_precise_y <3>
+      mat_trigger_style <plain_picture>
+      mat_precise_height <103>
+      mat_precise_width <115>
+
+      act_replace_select_action
+          <
+          uni_start_stream_wait_on <00x>
+          sm_send_k1 <17-35040>
+          >
+      man_start_sibling <trigger, "">
+        mat_precise_x <1>
+        mat_precise_y <105>
+        mat_trigger_style <plain_picture>
+
+        act_replace_select_action
+            <
+            uni_start_stream <00x>
+              man_preset_gid <32-5483>
+              if_last_return_true_then <1, 2>
+              man_make_focus
+              man_update_display
+              uni_sync_skip <1>
+              uni_wait_on
+              uni_invoke_no_context <32-5483>
+              uni_sync_skip <2>
+            uni_end_stream <00x>
+            >
+        man_start_sibling <trigger, "">
+          mat_precise_x <10>
+          mat_precise_y <162>
+          mat_trigger_style <plain_picture>
+
+          act_replace_select_action
+              <
+              uni_start_stream_wait_on <00x>
+              sm_send_k1 <3-4604>
+              >
+          man_start_sibling <trigger, "">
+            mat_precise_y <226>
+            mat_relative_tag <22>
+            mat_trigger_style <plain_picture>
+
+            mat_bool_default <yes>
+            act_replace_select_action
+                <
+                uni_start_stream_wait_on <00x>
+                sm_send_k1 <19-6341>
+                >
+            man_start_sibling <trigger, "">
+              mat_precise_x <98>
+              mat_precise_y <226>
+              mat_trigger_style <plain_picture>
+
+              act_replace_select_action
+                  <
+                  uni_start_stream
+                    sm_enter_paid
+                  sm_send_token_arg <"CJ">
+                  >
+              man_start_sibling <trigger, "">
+                mat_precise_x <196>
+                mat_precise_y <226>
+                mat_trigger_style <plain_picture>
+
+                act_replace_select_action
+                    <
+                    uni_start_stream_wait_on <00x>
+                    sm_send_k1 <17-40338>
+                    >
+                man_start_sibling <trigger, "">
+                  mat_precise_x <440>
+                  mat_precise_y <9>
+                  mat_relative_tag <17>
+                  mat_trigger_style <rectangle>
+                  mat_art_id <1-69-1307>
+                  mat_bool_resize_horizontal <yes>
+                man_start_sibling <trigger, "">
+                  mat_precise_x <440>
+                  mat_precise_y <82>
+                  mat_relative_tag <18>
+                  mat_trigger_style <rectangle>
+                  mat_art_id <1-0-1307>
+                  mat_bool_resize_horizontal <yes>
+                man_start_sibling <trigger, "">
+                  mat_precise_x <440>
+                  mat_precise_y <155>
+                  mat_relative_tag <19>
+                  mat_trigger_style <rectangle>
+                  mat_art_id <1-0-1307>
+                  mat_bool_resize_horizontal <yes>
+                man_start_sibling <trigger, "">
+                  mat_precise_x <440>
+                  mat_precise_y <228>
+                  mat_relative_tag <20>
+                  mat_trigger_style <rectangle>
+                  mat_art_id <1-0-1307>
+                  mat_bool_resize_horizontal <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <293>
+                  mat_precise_y <10>
+                  mat_precise_width <1>
+                  mat_precise_height <210>
+                  mat_color_face <1, 1, 1>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <294>
+                  mat_precise_y <11>
+                  mat_precise_width <1>
+                  mat_precise_height <210>
+                  mat_color_face <200, 200, 200>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <302>
+                  mat_precise_y <76>
+                  mat_precise_width <208>
+                  mat_precise_height <1>
+                  mat_color_face <1, 1, 1>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <303>
+                  mat_precise_y <77>
+                  mat_precise_width <208>
+                  mat_precise_height <1>
+                  mat_color_face <200, 200, 200>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <302>
+                  mat_precise_y <149>
+                  mat_precise_width <208>
+                  mat_precise_height <1>
+                  mat_color_face <1, 1, 1>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <303>
+                  mat_precise_y <150>
+                  mat_precise_width <208>
+                  mat_precise_height <1>
+                  mat_color_face <200, 200, 200>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <302>
+                  mat_precise_y <222>
+                  mat_precise_width <208>
+                  mat_precise_height <1>
+                  mat_color_face <1, 1, 1>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <org_group, "">
+                  mat_orientation <hff>
+                  mat_precise_x <303>
+                  mat_precise_y <223>
+                  mat_precise_width <208>
+                  mat_precise_height <1>
+                  mat_color_face <200, 200, 200>
+                  mat_bool_background_flood <yes>
+                man_start_sibling <trigger, "">
+                  mat_precise_x <190>
+                  mat_precise_y <25>
+                  mat_relative_tag <21>
+                  mat_trigger_style <rectangle>
+                  mat_art_id <1-0-1307>
+                  mat_bool_resize_horizontal <yes>
+                man_start_sibling <view, "">
+                  rich_manage
+                  mat_precise_x <185>
+                  mat_precise_y <95>
+                  mat_precise_width <85>
+                  mat_precise_height <120>
+                  mat_relative_tag <3>
+                  rich_set_static
+                  mat_bool_vertical_scroll <no>
+                  mat_bool_resize_vertical <no>
+                  mat_bool_resize_horizontal <no>
+                  mat_bool_exportable <no>
+                  mat_font_id <arial>
+                  mat_font_size <9>
+                man_start_sibling <view, "">
+                  rich_manage
+                  mat_precise_x <302>
+                  mat_precise_y <9>
+                  mat_precise_width <125>
+                  mat_precise_height <60>
+                  mat_relative_tag <10>
+                  rich_set_static
+                  mat_bool_vertical_scroll <no>
+                  mat_bool_resize_vertical <no>
+                  mat_bool_resize_horizontal <no>
+                  mat_bool_exportable <no>
+                  mat_font_id <arial>
+                  mat_font_size <9>
+                man_start_sibling <view, "">
+                  rich_manage
+                  mat_precise_x <302>
+                  mat_precise_y <82>
+                  mat_precise_width <125>
+                  mat_precise_height <60>
+                  mat_relative_tag <12>
+                  rich_set_static
+                  mat_bool_vertical_scroll <no>
+                  mat_bool_resize_vertical <no>
+                  mat_bool_resize_horizontal <no>
+                  mat_bool_exportable <no>
+                  mat_font_id <arial>
+                  mat_font_size <9>
+                man_start_sibling <view, "">
+                  rich_manage
+                  mat_precise_x <302>
+                  mat_precise_y <155>
+                  mat_precise_width <125>
+                  mat_precise_height <60>
+                  mat_relative_tag <14>
+                  rich_set_static
+                  mat_bool_vertical_scroll <no>
+                  mat_bool_resize_vertical <no>
+                  mat_bool_resize_horizontal <no>
+                  mat_bool_exportable <no>
+                  mat_font_id <arial>
+                  mat_font_size <9>
+                man_start_sibling <view, "">
+                  rich_manage
+                  mat_precise_x <302>
+                  mat_precise_y <228>
+                  mat_precise_width <125>
+                  mat_precise_height <60>
+                  mat_relative_tag <16>
+                  rich_set_static
+                  mat_bool_vertical_scroll <no>
+                  mat_bool_resize_vertical <no>
+                  mat_bool_resize_horizontal <no>
+                  mat_bool_exportable <no>
+                  mat_font_id <arial>
+                  mat_font_size <9>
+                man_end_object
+              uni_end_stream <00x>

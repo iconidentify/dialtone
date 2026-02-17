@@ -1,0 +1,8 @@
+{
+  "transparency": true,
+  "width": 32,
+  "height": 32,
+  "enableDithering": true,
+  "enablePosterization": false,
+  "posterizationLevel": 32
+}

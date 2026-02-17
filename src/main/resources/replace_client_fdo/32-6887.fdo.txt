@@ -1,0 +1,117 @@
+uni_start_stream <00x>
+  man_start_object <ind_group, "Quitter ?">
+    mat_style_id <32-8874>
+    mat_orientation <vcf>
+    mat_color_face <255, 251, 240>
+    mat_object_id <32-5472>
+    act_set_criterion <7>
+    act_replace_action
+        <
+        uni_start_stream
+          man_close_update
+        uni_end_stream
+        >
+      act_set_criterion <8>
+      act_replace_action
+          <
+          uni_start_stream
+            man_close_update
+          uni_end_stream
+          >
+        async_playsound <"ding.wav">
+        async_playsound <"..\\windows\\media\\ding.wav">
+        mat_position <center_center>
+        mat_bool_resize_vertical <no>
+        mat_bool_background_flood <yes>
+        man_start_object <trigger, "">
+          mat_relative_tag <3>
+          mat_trigger_style <rectangle>
+          mat_art_id <1-0-1307>
+          mat_bool_resize_horizontal <yes>
+          mat_bool_invisible <yes>
+          mat_bool_gradual_shadow <yes>
+        man_start_sibling <view, "">
+          rich_manage
+          mat_relative_tag <1>
+          rich_set_static
+          mat_bool_vertical_scroll <no>
+          mat_bool_resize_vertical <no>
+          mat_bool_resize_horizontal <no>
+          mat_bool_invisible <yes>
+          mat_bool_exportable <no>
+          mat_font_id <arial>
+          mat_font_size <9>
+        man_start_sibling <trigger, "">
+          mat_relative_tag <4>
+          mat_trigger_style <rectangle>
+          mat_art_id <1-0-1307>
+          mat_bool_resize_horizontal <yes>
+          mat_bool_invisible <yes>
+          mat_bool_gradual_shadow <yes>
+        man_start_sibling <view, "">
+          rich_manage
+          mat_relative_tag <2>
+          rich_set_static
+          mat_bool_vertical_scroll <no>
+          mat_bool_resize_vertical <no>
+          mat_bool_resize_horizontal <no>
+          mat_bool_invisible <yes>
+          mat_bool_exportable <no>
+          mat_font_id <arial>
+          mat_font_size <9>
+        man_start_sibling <ornament, "">
+          mat_size <30, 2>
+          mat_font_id <arial>
+          mat_font_size <10>
+          mat_font_style <bold>
+          man_append_data <"Voulez-vous vraiment vous d�connecter ?">
+        man_start_sibling <org_group, "">
+          mat_orientation <hef>
+          man_start_object <trigger, "ANNULER">
+            mat_title_width <8>
+            mat_color_face <204, 204, 255>
+            mat_color_top_edge <255, 255, 255>
+            mat_color_bottom_edge <153, 153, 204>
+            mat_font_sis <arial, 8, normal>
+            act_replace_select_action
+                <
+                uni_start_stream <00x>
+                  man_close_update
+                uni_end_stream <00x>
+                >
+            man_start_sibling <trigger, "DECONNEXION">
+              mat_title_width <12>
+              mat_color_face <204, 204, 255>
+              mat_color_top_edge <255, 255, 255>
+              mat_color_bottom_edge <153, 153, 204>
+              mat_font_sis <arial, 8, normal>
+              act_replace_select_action
+                  <
+                  uni_start_stream
+            xfer_finish_later
+                    man_close_update
+                    uni_wait_on
+                    async_exit_aux <00x>
+                  uni_end_stream
+                  >
+              man_start_sibling <trigger, "QUITTER">
+                mat_title_width <8>
+                mat_relative_tag <5>
+                mat_color_face <204, 204, 255>
+                mat_color_top_edge <255, 255, 255>
+                mat_color_bottom_edge <153, 153, 204>
+                mat_font_sis <arial, 8, normal>
+                mat_bool_default <yes>
+                act_replace_select_action
+                    <
+                    uni_start_stream
+                      man_close_update
+                      uni_wait_on
+                      async_exit_aux <01x>
+                    uni_end_stream
+                    >
+                man_end_object
+              man_end_object
+              man_place_cursor <5>
+              man_update_display
+            uni_end_stream <00x>

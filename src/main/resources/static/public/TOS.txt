@@ -1,0 +1,60 @@
+================================================================
+=                       D I A L T O N E                        =
+=             Unofficial / Experimental P3 Server              =
+=                For Research & Nostalgia Only                 =
+================================================================
+
+1.  NON-AFFILIATION
+    Dialtone is an independent, fan-made, experimental project.
+    It is NOT affiliated with AOL, America Online, Oath, Verizon,
+    Yahoo, or any rights holders. All trademarks belong to their
+    respective owners. Any references to "AOL" or "America Online"
+    are purely descriptive and nominative, used solely to identify
+    compatible client software.
+
+2.  PURPOSE
+    Dialtone exists for:
+      - protocol research
+      - historical study
+      - educational and archival use
+      - interoperability experimentation (17 U.S.C. 1201(f))
+    It is not a commercial product or public service.
+
+3.  CLIENT SOFTWARE
+    Dialtone does NOT distribute AOL client software or assets.
+    By connecting, you confirm you legally obtained your AOL
+    client and are responsible for its use.
+
+4.  REVERSE ENGINEERING
+    Any reverse engineering was performed solely to achieve
+    interoperability with discontinued software. No proprietary
+    code is included. No attempt is made to replicate or compete
+    with any current service.
+
+5.  PRIVACY NOTICE
+    This is an experimental system. No encryption. No guarantees.
+    Activity may be logged. Do NOT send real personal data.
+
+6.  NO WARRANTY / USE AT YOUR OWN RISK
+    Dialtone is provided AS IS, with no warranty of any kind.
+    The operator is not liable for damages, data loss, or legal
+    issues arising from use of this system.
+
+7.  INDEMNIFICATION
+    By using Dialtone, you agree to indemnify the operator
+    against claims arising from your use, including misuse,
+    illegal activity, or violation of third-party rights.
+
+8.  NO OWNERSHIP CLAIMS
+    Dialtone does not claim ownership over any AOL materials,
+    trademarks, icons, UI designs, or legacy content.
+
+9.  TERMINATION
+    Access may be revoked at any time for any reason, especially
+    if the operator believes your use creates legal or security
+    risk.
+
+10. ACCEPTANCE
+    By connecting to this server, you agree to all terms above
+    and acknowledge this is a non-commercial, research-only
+    environment.

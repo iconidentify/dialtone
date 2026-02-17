@@ -1,0 +1,24 @@
+services:
+  dialtone:
+    image: ghcr.io/iconidentify/dialtone:latest
+    container_name: dialtone
+    restart: unless-stopped
+    ports:
+      - "5191:5191"   # AOL protocol server
+      - "5200:5200"   # Web management interface
+    volumes:
+      # Persist the embedded SQLite database between restarts
+      - ./data/db:/app/db
+      # Persist log files if you want to inspect them outside the container
+      - ./data/logs:/app/logs
+    environment:
+      # Configuration overrides (Spring Boot will pick these up automatically)
+      - SERVER_PORT=5191
+      - WEB_PORT=5200
+      - BIND_ADDRESS=0.0.0.0
+      - VERBOSE=true
+      - GROK_ENABLED=false
+      # Database location
+      - DB_PATH=/app/db/dialtone.db
+      # Memory settings
+      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx1024m

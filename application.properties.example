@@ -1,0 +1,168 @@
+# Dialtone Protocol Server Configuration
+# Copy this file to src/main/resources/application.properties and fill in your values.
+
+server.port=5191
+verbose=true
+bind.address=0.0.0.0
+
+# Web Interface Configuration
+web.port=5200
+web.bind.address=0.0.0.0
+
+# Database Configuration
+db.path=db/dialtone.db
+db.pool.max.size=10
+db.pool.min.idle=2
+db.connection.timeout=30000
+
+# X OAuth Configuration (REQUIRED for web interface)
+# Get these from your X Developer account at https://developer.x.com/
+# Create a project/app, enable OAuth 2.0, and set the callback URL below.
+x.oauth.client.id=YOUR_X_CLIENT_ID
+x.oauth.client.secret=YOUR_X_CLIENT_SECRET
+x.oauth.redirect.uri=http://localhost:5200/api/auth/x/callback
+
+# Discord OAuth Configuration
+# Get these from your Discord Developer Portal at https://discord.com/developers/applications
+# Create an application, go to OAuth2 settings, and add the redirect URL below.
+discord.oauth.client.id=YOUR_DISCORD_CLIENT_ID
+discord.oauth.client.secret=YOUR_DISCORD_CLIENT_SECRET
+discord.oauth.redirect.uri=http://localhost:5200/api/auth/discord/callback
+
+# Web Session Configuration
+session.timeout.minutes=1440
+# JWT secret must be at least 32 characters for HMAC-SHA256
+jwt.secret=CHANGE_ME_TO_A_RANDOM_32_CHAR_OR_LONGER_STRING
+jwt.expiry.hours=24
+
+# Development Configuration
+development.mode=false
+cors.allowed.origins=http://localhost:3000,http://localhost:5173,http://localhost:5200
+
+# Authentication Configuration
+auth.mode=database
+
+# FDO Compiler Configuration
+fdo.compiler.backend=java
+
+# P3 Frame Configuration
+p3.max.frame.length=512
+
+# P3 Pacer Configuration
+pacer.inter.frame.delay.ms=0
+
+# Grok AI API configuration
+# Get an API key from https://console.x.ai/
+# Set grok.enabled=false to disable all AI features
+grok.enabled=false
+grok.api.key=YOUR_GROK_API_KEY
+grok.base.url=https://api.x.ai/v1
+grok.model=grok-4
+grok.timeout.ms=180000
+grok.refresh.interval.minutes=1440
+grok.retry.enabled=false
+grok.retry.delay.seconds=50
+
+# Daily API quota (max fetches per 24 hours across all services)
+grok.daily.quota=10
+
+# Grok Live Search configuration
+grok.search.enabled=true
+grok.search.mode=auto
+grok.search.sources=web,news,x
+grok.search.max_results=20
+
+# Story formatting configuration
+grok.story.summary.sentences=4
+grok.story.headline.words.min=12
+grok.story.headline.words.max=18
+
+# Unified News Service Configuration
+news.base.persist.dir=src/main/resources/news
+news.default.refresh.interval.minutes=1440
+news.default.daily.quota=10
+news.default.keep.count=10
+news.general.refresh.interval.minutes=30
+
+# Grok Conversational AI (Grok chatbot)
+grok.chat.max.tokens=1000
+grok.chat.temperature=0.8
+grok.chat.system.prompt=You are Grok, a friendly and knowledgeable AI assistant from the classic instant messenger era. \
+You are helpful, conversational, and have a warm personality. \
+Give complete, helpful answers - your responses will be automatically split into multiple chat messages. \
+Use short sentences that flow naturally. Avoid bullet points, numbered lists, or markdown formatting. \
+Write like you are chatting with a friend - conversational and warm. \
+IMPORTANT: Never use emojis or non-ASCII characters in your responses. \
+This is a 1995 ASCII-only protocol that cannot handle emojis. \
+Use plain text only with standard punctuation.
+
+# Chat Bot Registry configuration
+bot.response.timeout.ms=120000
+
+# Response Formatter Configuration
+formatter.chat.room.limit=68
+formatter.im.limit=512
+formatter.split.delay.ms=500
+formatter.ai.splitting.enabled=true
+formatter.max.messages=10
+
+# Admin System Configuration
+admin.enabled=false
+# Comma-separated list of X usernames that get admin privileges
+admin.x.usernames=YOUR_X_USERNAME
+admin.auto.promote=true
+admin.max.screennames.override=20
+admin.session.timeout.minutes=30
+admin.require.confirmation.for.destructive.actions=true
+admin.rate.limit.requests.per.minute=60
+admin.audit.log.retention.days=365
+admin.audit.log.max.entries=100000
+
+# Email Authentication (Resend Magic Link)
+# Get an API key from https://resend.com/
+email.enabled=false
+email.resend.api.key=YOUR_RESEND_API_KEY
+email.from.address=support@yourdomain.com
+email.from.name=Dialtone
+email.magic.link.expiry.minutes=15
+email.base.url=http://localhost:5200
+email.rate.limit.per.hour=3
+
+# File Transfer Configuration
+transfer.max.file.size.mb=100
+
+# Storage Configuration
+storage.type=local
+storage.local.base.dir=storage
+storage.local.max.file.size.mb=100
+
+# Button Theming (Dialtone Brand Colors)
+button.color.face=252, 157, 44
+button.color.text=0, 30, 55
+button.color.top.edge=255, 200, 100
+button.color.bottom.edge=150, 90, 20
+
+# XFER Upload Configuration
+upload.phase.timeout.ms=300000
+upload.tn.enabled=false
+upload.tn.interval.frames=6
+upload.ack.enabled=true
+upload.ack.interval.frames=8
+
+# Skalholt Telnet Bridge Configuration
+telnet.host=localhost
+telnet.port=8162
+telnet.timeout.ms=30000
+
+# Skalholt MUD API Configuration
+skalholt.api.host=localhost
+skalholt.api.port=8163
+skalholt.api.timeout.ms=10000
+skalholt.eventstream.enabled=true
+
+# Skalholt SSO Configuration
+# Shared secret for bannerless telnet authentication
+skalholt.sso.secret=YOUR_SKALHOLT_SSO_SECRET
+
+# Ephemeral Guest Fallback Configuration
+auth.ephemeral.fallback.enabled=true

@@ -1,0 +1,62 @@
+uni_start_stream <00x>
+man_start_object <ind_group, "">
+mat_object_id <69-420>
+mat_orientation <vff>
+mat_position <center_center>
+man_start_object <org_group, "">
+mat_orientation <vff>
+man_start_object <org_group, "">
+mat_orientation <hef>
+man_start_object <org_group, "">
+mat_orientation <hle>
+man_start_sibling <org_group, "">
+man_end_object
+man_start_sibling <org_group, "">
+mat_orientation <vlt>
+man_start_object <view, "">
+mat_size <86, 24, 8192>
+mat_relative_tag <256>
+mat_font_sis <1, 8, 0>
+mat_bool_writeable <yes>
+mat_scroll_threshold <4096>
+mat_bool_force_scroll <yes>
+mat_paragraph <1>
+man_end_object
+man_start_object <org_group, "">
+mat_orientation <hlf>
+man_start_object <edit_view, "">
+mat_size <82, 1, 92>
+mat_relative_tag <258>
+mat_title_pos <left|center>
+mat_bool_vertical_scroll <no>
+mat_bool_resize_vertical <no>
+mat_bool_resize_horizontal <yes>
+mat_bool_exportable <no>
+mat_bool_writeable <yes>
+mat_validation <128>
+mat_font_sis <8, 8, 0>
+man_start_sibling <trigger, "Send">
+mat_bool_default <yes>
+mat_trigger_style <place>
+act_replace_select_action <
+uni_start_stream
+de_start_extraction
+de_validate <display_msg | terminate>
+buf_set_token <"St">
+man_set_context_relative <258>
+de_get_data
+man_clear_object
+man_make_focus
+man_update_display
+de_end_extraction
+buf_close_buffer
+man_end_context
+uni_end_stream
+>
+man_end_object
+man_end_object
+man_end_object
+man_end_object
+man_update_display
+uni_end_stream <00x>
+

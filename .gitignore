@@ -1,0 +1,80 @@
+# ---- Build outputs ----
+target/
+
+# Maven shade plugin output
+dependency-reduced-pom.xml
+
+# Jqwik property-based testing database
+.jqwik-database
+
+# ---- Logs & runtime artifacts ----
+logs/
+*.log
+*.jfr
+*.jfr.log.txt
+
+# ---- User uploads (runtime data) ----
+uploads/
+
+# ---- Local persistent storage ----
+storage/
+
+# ---- Java/Bytecode ----
+*.class
+
+# ---- PCAPs / capture files ----
+*.pcap
+*.pcapng
+*.cap
+# Keep curated test/input captures under resources committed
+!src/main/resources/*.pcap
+!src/main/resources/*.pcapng
+!src/main/resources/*.cap
+
+# ---- Python (for notaol/ helpers) ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.env
+.env.local
+env/
+
+# ---- IDE / Editor ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+*.orig
+
+# ---- OS / misc ----
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# ---- Database files ----
+/db/
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Node.js / Frontend ----
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# Frontend build artifacts (these are built automatically)
+src/main/resources/static/dist/
+src/main/resources/static/node/
+src/main/resources/public/
+
+

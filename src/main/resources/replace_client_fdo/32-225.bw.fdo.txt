@@ -1,0 +1,240 @@
+uni_start_stream
+  man_start_object <ind_group, "">
+    mat_form_icon <1-0-1333>
+    mat_orientation <vlf>
+    mat_object_id <32-225>
+    mat_title <"Send Instant Message">
+    mat_style_id <32-223>
+    act_set_criterion <210>
+    act_replace_action
+        <
+        uni_start_stream
+          man_set_context_relative <2>
+          rich_get_text_style
+          var_number_set_from_atom <A>
+          man_change_context_relative <42>
+          var_number_get <A>
+          var_number_set <B, 1>
+          if_numa_and_numb_then <1, 2>
+          mat_value <1>
+          uni_sync_skip <1>
+          mat_value <0>
+          uni_sync_skip <2>
+          man_change_context_relative <43>
+          var_number_get <A>
+          var_number_set <B, 2>
+          if_numa_and_numb_then <1, 2>
+          mat_value <1>
+          uni_sync_skip <1>
+          mat_value <0>
+          uni_sync_skip <2>
+          man_change_context_relative <44>
+          var_number_get <A>
+          var_number_set <B, 4>
+          if_numa_and_numb_then <1, 2>
+          mat_value <1>
+          uni_sync_skip <1>
+          mat_value <0>
+          uni_sync_skip <2>
+          man_end_context
+          man_update_display
+        uni_end_stream
+        >
+      man_start_object <edit_view, "">
+        mat_height <1>
+        mat_width <25>
+        mat_validation <128>
+        mat_relative_tag <1>
+        mat_title <"To:">
+        mat_title_pos <left | center>
+      man_start_sibling <org_group, "">
+        mat_orientation <vft>
+        man_start_object <org_group, "">
+          mat_orientation <hlt>
+          mat_bool_tool_group <yes>
+          mat_bool_resize_horizontal <yes>
+          mat_bool_resize_vertical <yes>
+          man_start_object <org_group, "">
+            mat_orientation <hft>
+            man_start_object <trigger, "">
+              mat_context_help <"Text Color">
+              mat_relative_tag <60>
+              mat_horizontal_spacing <0>
+              mat_vertical_spacing <2>
+              mat_art_id <1-0-31462>
+              mat_bool_small_icon <yes>
+              act_replace_select_action
+                  <
+                  uni_start_stream
+                    rich_text_color
+                  uni_end_stream
+                  >
+              man_start_sibling <trigger, "">
+                mat_context_help <"Background Color">
+                mat_relative_tag <61>
+                mat_horizontal_spacing <3>
+                mat_art_id <1-0-31463>
+                mat_bool_small_icon <yes>
+                act_replace_select_action
+                    <
+                    uni_start_stream
+                      rich_background_color
+                    uni_end_stream
+                    >
+                man_end_object
+              man_start_sibling <org_group, "">
+                mat_orientation <hft>
+                man_start_object <trigger, "">
+                  mat_context_help <"Reduce Font Size">
+                  mat_art_id <1-0-31459>
+                  mat_bool_small_icon <yes>
+                  mat_relative_tag <41>
+                  mat_horizontal_spacing <0>
+                  act_replace_select_action
+                      <
+                      uni_start_stream
+                        rich_font_size <1>
+                      uni_end_stream
+                      >
+                  man_start_sibling <trigger, "">
+                    mat_context_help <"Reset Font Size">
+                    mat_relative_tag <64>
+                    mat_horizontal_spacing <0>
+                    mat_art_id <1-0-31460>
+                    mat_bool_small_icon <yes>
+                    act_replace_select_action
+                        <
+                        uni_start_stream
+                          rich_font_size <3>
+                        uni_end_stream
+                        >
+                    man_start_sibling <trigger, "">
+                      mat_context_help <"Enlarge Font Size">
+                      mat_relative_tag <65>
+                      mat_horizontal_spacing <3>
+                      mat_art_id <1-0-31461>
+                      mat_bool_small_icon <yes>
+                      act_replace_select_action
+                          <
+                          uni_start_stream
+                            rich_font_size <7>
+                          uni_end_stream
+                          >
+                      man_end_object
+                    man_start_sibling <sms_list, "">
+                      mat_orientation <hlt>
+                      mat_bool_list_icons <yes>
+                      man_start_object <trigger, "">
+                        mat_context_help <"Bold">
+                        mat_relative_tag <42>
+                        mat_horizontal_spacing <0>
+                        mat_trigger_style <group_state>
+                        mat_art_id <1-0-31464>
+                        mat_bool_small_icon <yes>
+                        act_replace_select_action
+                            <
+                            uni_start_stream
+                              rich_font_attribute <1>
+                            uni_end_stream
+                            >
+                          act_set_criterion <23>
+                          act_replace_action
+                              <
+                              uni_start_stream
+                                rich_font_attribute <1>
+                              uni_end_stream
+                              >
+                          man_start_sibling <trigger, "">
+                            mat_context_help <"Italics">
+                            mat_relative_tag <43>
+                            mat_horizontal_spacing <0>
+                            mat_trigger_style <group_state>
+                            mat_art_id <1-0-31465>
+                            mat_bool_small_icon <yes>
+                            act_replace_select_action
+                                <
+                                uni_start_stream
+                                  rich_font_attribute <2>
+                                uni_end_stream
+                                >
+                              act_set_criterion <23>
+                              act_replace_action
+                                  <
+                                  uni_start_stream
+                                    rich_font_attribute <2>
+                                  uni_end_stream
+                                  >
+                              man_start_sibling <trigger, "">
+                                mat_context_help <"Underline">
+                                mat_relative_tag <44>
+                                mat_horizontal_spacing <3>
+                                mat_trigger_style <group_state>
+                                mat_art_id <1-0-31466>
+                                mat_bool_small_icon <yes>
+                                act_replace_select_action
+                                    <
+                                    uni_start_stream
+                                      rich_font_attribute <4>
+                                    uni_end_stream
+                                    >
+                                  act_set_criterion <23>
+                                  act_replace_action
+                                      <
+                                      uni_start_stream
+                                        rich_font_attribute <4>
+                                      uni_end_stream
+                                      >
+                                  man_end_object
+                                man_end_object
+                              man_start_sibling <edit_view, "">
+                                rich_manage
+                                mat_precise_height <80>
+                                mat_precise_width <320>
+                                mat_capacity <512>
+                                mat_validation <128>
+                                mat_relative_tag <2>
+                              man_end_object
+                            man_start_sibling <org_group, "">
+                              mat_orientation <hcf>
+                              man_start_object <trigger, "Send">
+                                mat_context_help <"Click here to send IM">
+                                mat_command_key <0dx>
+                                act_set_criterion <select>
+                                act_append_action
+                                  <
+                                  uni_start_stream
+                                    uni_wait_on
+                                    de_validate <display_msg | terminate>
+                                    buf_start_buffer <token_header | stream_id_header | host_bound | start_stream_header | end_stream_trailer | response_id_header>
+                                    de_start_extraction
+                                    buf_set_token <"iS">
+                                    man_set_context_relative <1>
+                                    de_get_data
+                                    man_change_context_relative <2>
+                                    de_get_data
+                                    man_end_context
+                                    de_end_extraction
+                                    buf_close_buffer
+                                  uni_end_stream
+                                  >
+                              man_start_sibling <trigger, "Available?">
+                                mat_context_help <"Check to see if\x7fmember is online">
+                                act_set_criterion <select>
+                                act_append_action
+                                  <
+                                  uni_start_stream
+                                    uni_wait_on
+                                    buf_start_buffer <token_header | stream_id_header | host_bound | start_stream_header | end_stream_trailer | response_id_header>
+                                    de_start_extraction
+                                    buf_set_token <"iO">
+                                    man_set_context_relative <1>
+                                    de_get_data
+                                    man_end_context
+                                    de_end_extraction
+                                    buf_close_buffer
+                                  uni_end_stream
+                                  >
+                              man_end_object
+                            man_end_object
+                            man_update_display
+                          uni_end_stream

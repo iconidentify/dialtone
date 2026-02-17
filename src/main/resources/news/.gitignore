@@ -1,0 +1,5 @@
+# Ignore all news JSON files
+*.json
+
+# Keep the .gitignore file itself
+!.gitignore

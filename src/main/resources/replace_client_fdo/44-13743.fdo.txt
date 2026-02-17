@@ -1,0 +1,96 @@
+uni_start_stream <>
+  man_preset_gid <43-1282>
+  if_last_return_true_then <1>
+  man_make_focus <>
+man_update_display <>
+uni_wait_off <>
+uni_abort_stream <0>
+uni_sync_skip <1>
+uni_start_stream <>
+  man_set_context_globalid <2>
+  man_preset_relative <2819330>
+  man_start_last <trigger, "Area Manager">
+    mat_object_id <43-1282>
+    mat_relative_tag <2819330>
+    mat_shortcut_key <"A">
+    act_replace_select_action
+      <
+      uni_start_stream <>
+        vrm_action_command <307>
+      uni_end_stream <>
+      >
+    man_start_object <trigger, "Show">
+      mat_relative_tag <303>
+      mat_shortcut_key <"W">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <303>
+        uni_end_stream <>
+        >
+    man_start_sibling <ornament, "">
+    man_start_sibling <trigger, "New Project">
+      mat_relative_tag <302>
+      mat_shortcut_key <"N">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <302>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Open Project...">
+      mat_relative_tag <301>
+      mat_shortcut_key <"O">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <301>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Save Project...">
+      mat_relative_tag <300>
+      mat_shortcut_key <"S">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <300>
+        uni_end_stream <>
+        >
+    man_start_sibling <ornament, "">
+    man_start_sibling <trigger, "Activate Host Access...">
+      mat_relative_tag <385>
+      mat_shortcut_key <"H">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <385>
+        uni_end_stream <>
+        >
+    man_start_sibling <ornament, "">
+    man_start_sibling <trigger, "Options...">
+      mat_relative_tag <306>
+      mat_shortcut_key <"p">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <306>
+        uni_end_stream <>
+        >
+    man_start_sibling <ornament, "">
+    man_start_sibling <trigger, "About Area Manager...">
+      mat_relative_tag <304>
+      mat_shortcut_key <"A">
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          vrm_action_command <304>
+        uni_end_stream <>
+        >
+    man_end_object <>
+  man_end_object <>
+man_update_display <2>
+uni_wait_off <>
+vrm_form_up <320>
+uni_end_stream <>
+uni_end_stream <>
+

@@ -1,0 +1,213 @@
+uni_start_stream <>
+  uni_transaction_id <16779480>
+  dod_hints_no_action <00x, 96x, 00x, 5cx>
+  man_set_response_id <18>
+  man_preset_gid <40-47544>
+  if_last_return_true_then <1>
+  man_make_focus <>
+man_update_display <>
+uni_wait_off <>
+uni_abort_stream <0>
+uni_sync_skip <1>
+man_preset_url <"aol://1722:areamanager">
+uni_start_stream <>
+  man_preset_gid <40-47544>
+  if_last_return_true_then <1>
+  man_make_focus <>
+man_update_display <>
+uni_abort_stream <0>
+uni_sync_skip <1>
+async_is_known_subaccount <>
+if_last_return_false_then <1>
+async_alert <info, "This feature can only be used by registered screen names (not New User or Guest).">
+uni_abort_stream <0>
+uni_sync_skip <1>
+man_start_object <independent, "Visual Publishing Suite Area Manager">
+  mat_object_id <40-47544>
+  mat_style_id <40-47544>
+  mat_orientation <vlt>
+  act_set_criterion <c8x>
+  act_replace_action
+    <
+    uni_start_stream <>
+    uni_end_stream <>
+    >
+  mat_art_id <1-0-2264>
+  mat_position <top_left>
+  mat_bool_background_tile <yes>
+  man_start_object <org_group, "">
+    mat_orientation <hfc>
+    man_start_object <trigger, "Bug Report">
+      mat_color_face <254>
+      mat_context_help <"Report problems here, please">
+      mat_precise_x <490>
+      mat_precise_y <235>
+      mat_color_text <255, 255, 255>
+      mat_color_face <221, 0, 0>
+      mat_bool_background_flood <yes>
+      mat_trigger_style <rectangle>
+      mat_color_top_edge <5, 5, 5>
+      mat_bool_gradual_shadow <yes>
+      mat_font_sis <arial, 10, bold>
+      act_replace_select_action
+        <
+        uni_start_stream_wait_on <>
+        sm_send_k1 <40-45134>
+        >
+    man_end_object <>
+  man_start_sibling <org_group, "">
+    mat_orientation <hlc>
+    man_start_object <dynamic_list, "Add:">
+      mat_orientation <vlt>
+      mat_size <20, 3>
+      mat_bool_resize_horizontal <yes>
+      man_start_object <trigger, "Art">
+        mat_relative_tag <100>
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            man_set_context_relative <1>
+            vrm_action_command <311>
+            man_end_context <>
+          uni_end_stream <>
+          >
+      man_start_sibling <trigger, "Sound">
+        mat_relative_tag <106>
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            man_set_context_relative <1>
+            vrm_action_command <317>
+            man_end_context <>
+          uni_end_stream <>
+          >
+      man_start_sibling <trigger, "File">
+        mat_relative_tag <101>
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            man_set_context_relative <1>
+            vrm_action_command <335>
+            man_end_context <>
+          uni_end_stream <>
+          >
+      man_start_sibling <trigger, "Favorite Form">
+        mat_relative_tag <102>
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            man_set_context_relative <1>
+            vrm_action_command <355>
+            man_end_context <>
+          uni_end_stream <>
+          >
+      man_start_sibling <trigger, "Page">
+        mat_relative_tag <103>
+        act_replace_select_action
+          <
+          uni_start_stream_wait_on <>
+          sm_send_k1 <40-43598>
+          >
+      man_start_sibling <trigger, "Reference">
+        mat_relative_tag <104>
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            vrm_action_command <2>
+          uni_end_stream <>
+          >
+      man_start_sibling <trigger, "NetAddress">
+        mat_relative_tag <105>
+        act_replace_select_action
+          <
+          uni_start_stream <>
+            vrm_action_command <1>
+          uni_end_stream <>
+          >
+      man_end_object <>
+    man_end_object <>
+  man_start_sibling <org_group, "">
+    mat_orientation <hlt>
+    man_start_object <trigger, "Add Folder">
+      mat_trigger_style <place>
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          man_set_context_relative <1>
+          morg_prompt_create_folder <"">
+          man_end_context <>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Edit">
+      mat_relative_tag <2>
+      mat_trigger_style <place>
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          man_set_context_relative <1>
+          morg_obj_set_context_selection <>
+          morg_obj_get_class <>
+          var_number_set_from_atom <A>
+          var_number_set <B, 130>
+          if_numa_eq_numb_then <3, 4>
+          man_preset_authoring_form <>
+          uni_sync_skip <3>
+          var_number_set <B, 134>
+          if_numa_eq_numb_then <5>
+          man_preset_authoring_form <>
+          uni_sync_skip <5>
+          uni_sync_skip <4>
+          vrm_action_command <305>
+          man_end_context <>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Publish to Rainman">
+      mat_trigger_style <place>
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          man_set_context_relative <1>
+          vrm_action_command <346>
+          man_end_context <>
+        uni_end_stream <>
+        >
+    man_start_sibling <trigger, "Search">
+      mat_trigger_style <place>
+      act_replace_select_action
+        <
+        uni_start_stream <>
+          man_set_context_relative <1>
+          morg_view_search <>
+          man_end_context <>
+        uni_end_stream <>
+        >
+    man_end_object <>
+  man_start_sibling <view, "">
+    mat_size <45, 20>
+    mat_relative_tag <1>
+    morg_manage <>
+    mat_font_sis <arial, 9, normal>
+    morg_view_path <"IP Area">
+    act_set_criterion <81x>
+    act_replace_action
+      <
+      uni_start_stream <>
+        man_close_update <>
+      uni_end_stream <>
+      >
+    act_set_criterion <82x>
+    act_replace_action
+      <
+      uni_start_stream <>
+        act_do_action <c8x>
+      uni_end_stream <>
+      >
+    mat_bool_writeable <yes>
+  man_end_object <>
+man_update_display <>
+act_do_action <c8x>
+vrm_form_up <310>
+uni_wait_off <>
+uni_end_stream <>
+uni_end_stream <>
+

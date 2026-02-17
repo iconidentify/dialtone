@@ -1,0 +1,13 @@
+uni_start_stream <00x>
+  man_start_object <ind_group, "Network News">
+    mat_object_id <32-294>
+    mat_orientation <vff>
+    mat_position <top_left>
+    man_start_object <view, "">
+      mat_height <2>
+      mat_capacity <1024>
+      mat_relative_tag <1>
+      mat_bool_writeable <yes>
+    man_end_object
+    man_update_display
+  uni_end_stream <00x>

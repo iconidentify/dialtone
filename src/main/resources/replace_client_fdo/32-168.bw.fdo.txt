@@ -1,0 +1,146 @@
+uni_start_stream
+  man_set_response_id <2097320>
+  man_set_context_globalid <18-0-0>
+  man_use_default_title
+  man_start_object <ind_group, "">
+    mat_orientation <vff>
+    man_start_object <org_group, "">
+      mat_orientation <hlf>
+      man_start_object <ornament, "">
+        mat_art_id <1-69-1301>
+        mat_width <8>
+        mat_height <1>
+        mat_bool_disabled <yes>
+      man_end_object
+      man_start_object <ornament, "">
+        mat_title <"Information about">
+        mat_height <1>
+      man_end_object
+      man_use_default_title
+      man_start_object <ornament, "">
+        mat_relative_tag <1>
+        mat_width <10>
+        mat_height <1>
+        mat_bool_default_send <yes>
+      man_end_object
+    man_end_object
+    man_start_object <org_group, "">
+      mat_orientation <hee>
+      man_start_object <ornament, "">
+        mat_title <"Special handling:">
+        mat_width <16>
+        mat_height <1>
+      man_end_object
+      man_start_object <sms_list, "">
+        mat_orientation <hee>
+        mat_relative_tag <12>
+        act_set_criterion <select>
+        act_append_action
+          <
+          uni_start_stream
+            man_set_context_relative <12>
+            de_start_extraction
+            de_get_data_value
+            var_number_set_from_atom <A>
+            de_end_extraction
+            buf_close_buffer
+            man_end_context
+            var_lookup_by_id <B, 3>
+            var_number_save <B, 4>
+            var_number_save <A, 3>
+            var_number_sub <1>
+            if_numa_false_then <2>
+            de_start_extraction
+            buf_set_token <"I0">
+            man_set_context_relative <1>
+            de_get_data
+            de_end_extraction
+            buf_close_buffer
+            man_end_context
+            uni_wait_on
+            uni_sync_skip <2>
+            var_lookup_by_id <A, 3>
+            if_numa_false_then <2>
+            de_start_extraction
+            buf_set_token <"I1">
+            man_set_context_relative <1>
+            de_get_data
+            de_end_extraction
+            buf_close_buffer
+            man_end_context
+            uni_wait_on
+            uni_sync_skip <2>
+            var_lookup_by_id <A, 3>
+            var_lookup_by_id <C, 3>
+            var_lookup_by_id <B, 2>
+            var_lookup_by_id <A, 1>
+            uni_use_last_atom_value <man_set_context_globalid>
+            var_number_get <B>
+            uni_use_last_atom_value <man_set_context_relative>
+            var_number_save <C, 65536>
+            man_end_context
+            man_end_context
+          uni_end_stream
+          >
+        man_start_object <trigger, "">
+          mat_title <"Ignore">
+          mat_relative_tag <103>
+          act_set_inheritance <02x>
+        man_end_object
+      man_end_object
+    man_end_object
+    man_start_object <org_group, "">
+      mat_orientation <hef>
+      man_start_object <trigger, "">
+        mat_relative_tag <10>
+        mat_title <"Message">
+        man_set_context_globalid <1>
+        var_lookup_by_id <D, 192>
+        uni_save_result
+        man_end_context
+        uni_get_result
+        if_last_return_true_then <201>
+        mat_bool_disabled <yes>
+        uni_sync_skip <201>
+        mat_bool_default <yes>
+        act_set_criterion <select>
+        act_append_action
+          <
+          uni_start_stream
+            uni_wait_on
+            de_start_extraction <0>
+            man_set_context_relative <1>
+            de_get_data_pointer
+            uni_save_result
+            de_end_extraction
+            uni_invoke_no_context <32-225>
+            man_set_context_globalid <32-225>
+            man_set_context_relative <1>
+            uni_get_result
+            uni_use_last_atom_string <man_append_data>
+            man_end_context
+            man_place_cursor <2>
+            man_update_display
+            buf_close_buffer
+            uni_wait_off
+          uni_end_stream
+          >
+      man_end_object
+      man_start_object <trigger, "">
+        mat_title <"Get Info">
+        act_set_criterion <select>
+        act_append_action
+          <
+          uni_start_stream
+            uni_wait_on
+            de_start_extraction
+            buf_set_token <"id">
+            man_set_context_relative <1>
+            de_get_data
+            de_end_extraction
+            buf_close_buffer
+          uni_end_stream
+          >
+      man_end_object
+    man_end_object
+  uni_end_stream
