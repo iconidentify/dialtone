@@ -239,47 +239,11 @@ Located at:
 
 ------------------------------------------------------------------------
 
-# Docker Deployment
-
-``` bash
-docker-compose up -d
-```
-
-Production recommendations:
-
--   Inject secrets via environment variables
--   Use persistent volumes for SQLite
--   Do not bake credentials into images
-
-------------------------------------------------------------------------
-
-# Testing Strategy
-
-``` bash
-mvn test
-mvn test -Dtest=P3FrameExtractorTest
-mvn clean test -Pci
-```
-
 CI profile includes:
 
 -   Increased property-based testing iterations
 -   Coverage enforcement
 -   Protocol boundary validation
-
-------------------------------------------------------------------------
-
-# Development Philosophy
-
-Dialtone follows strict protocol discipline:
-
--   No speculative behavior
--   No protocol shortcuts
--   Explicit handling of all token cases
--   Strict CRC validation
--   Clear separation of transport and application layers
-
-Reverse engineering is treated as archaeology, not improvisation.
 
 ------------------------------------------------------------------------
 
