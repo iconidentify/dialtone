@@ -255,5 +255,3 @@ MIT License.
 
 Dialtone is a preservation project, a research project, and a
 production-grade server implementation.
-
-It is intentionally nerdy.
