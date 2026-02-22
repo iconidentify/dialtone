@@ -18,7 +18,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: arc-i9beef
+    runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
