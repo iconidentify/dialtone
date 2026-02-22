@@ -13,7 +13,7 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: arc-i9beef
     permissions:
       contents: read
       packages: read
@@ -79,7 +79,7 @@ jobs:
         GITHUB_ACTOR: ${{ github.actor }}
 
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: arc-i9beef
     needs: test
     if: github.event_name != 'pull_request'
 
