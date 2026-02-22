@@ -21,8 +21,13 @@ ingress:
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
     - host: dialtone.live
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: www.dialtone.live
       paths:
         - path: /
           pathType: Prefix
@@ -30,6 +35,7 @@ ingress:
     - secretName: dialtone-tls
       hosts:
         - dialtone.live
+        - www.dialtone.live
 
 persistence:
   db:
@@ -40,7 +46,7 @@ persistence:
     size: 10Gi
 
 config:
-  corsAllowedOrigins: "https://dialtone.live"
+  corsAllowedOrigins: "https://dialtone.live,https://www.dialtone.live"
   emailBaseUrl: "https://dialtone.live"
   xOauthRedirectUri: "https://dialtone.live/api/auth/x/callback"
   discordOauthRedirectUri: "https://dialtone.live/api/auth/discord/callback"

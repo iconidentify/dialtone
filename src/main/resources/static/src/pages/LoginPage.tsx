@@ -267,7 +267,7 @@ const LoginPage = ({ onError }: LoginPageProps) => {
         <div className="landing-auth">
           {/* Browser Connect Feature Card - Hero Position */}
           <a
-            href="/mac_connect"
+            href="https://mac.dialtone.live"
             className="browser-connect-card"
             target="_blank"
             rel="noopener noreferrer"

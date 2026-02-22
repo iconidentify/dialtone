@@ -111,7 +111,7 @@ const ClientSetupPage = ({ user, onLogout }: ClientSetupPageProps) => {
             </div>
           </div>
           <a
-            href="/mac_connect"
+            href="https://mac.dialtone.live"
             className="browser-vm-launch-btn"
             target="_blank"
             rel="noopener noreferrer"

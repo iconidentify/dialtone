@@ -199,7 +199,7 @@ const DashboardPage = ({ user, onUserUpdate, onLogout }: DashboardPageProps) => 
 
       {/* Try It Now - Browser VM Card */}
       <a
-        href="/mac_connect"
+        href="https://mac.dialtone.live"
         className="try-now-card"
         target="_blank"
         rel="noopener noreferrer"
