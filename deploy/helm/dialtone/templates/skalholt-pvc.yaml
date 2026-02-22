@@ -1,0 +1,18 @@
+{{- if .Values.skalholt.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "dialtone.fullname" . }}-skalholt-world
+  labels:
+    {{- include "dialtone.labels" . | nindent 4 }}
+    app.kubernetes.io/component: skalholt
+spec:
+  accessModes:
+    - {{ .Values.skalholt.persistence.accessMode }}
+  {{- if .Values.skalholt.persistence.storageClassName }}
+  storageClassName: {{ .Values.skalholt.persistence.storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.skalholt.persistence.size }}
+{{- end }}

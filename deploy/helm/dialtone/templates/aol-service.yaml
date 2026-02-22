@@ -1,0 +1,18 @@
+{{- if .Values.aolService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dialtone.fullname" . }}-aol
+  labels:
+    {{- include "dialtone.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ include "dialtone.name" . }}
+    app.kubernetes.io/component: server
+  ports:
+    - name: aol
+      port: 5191
+      targetPort: aol
+      protocol: TCP
+{{- end }}

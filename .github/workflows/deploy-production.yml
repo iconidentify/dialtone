@@ -1,0 +1,131 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (SHA short or "latest")'
+        required: true
+        default: 'latest'
+      confirmation:
+        description: 'Type "deploy" to confirm production deployment'
+        required: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NAMESPACE: dialtone
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Validate confirmation
+        if: ${{ github.event.inputs.confirmation != 'deploy' }}
+        run: |
+          echo "ERROR: You must type 'deploy' to confirm production deployment"
+          echo "You entered: '${{ github.event.inputs.confirmation }}'"
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.LINODE_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image exists
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}"
+          echo "Checking for image: ${IMAGE}"
+          docker manifest inspect "${IMAGE}" || {
+            echo "ERROR: Image not found: ${IMAGE}"
+            echo "Available tags can be found at: https://github.com/${{ github.repository }}/pkgs/container/dialtone"
+            exit 1
+          }
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying image tag: ${{ github.event.inputs.image_tag }}"
+
+          helm upgrade --install dialtone ./deploy/helm/dialtone \
+            --namespace ${{ env.NAMESPACE }} \
+            --create-namespace \
+            -f deploy/helm/values-production.yaml \
+            --set image.tag="${{ github.event.inputs.image_tag }}" \
+            --wait \
+            --timeout 10m
+
+      - name: Wait for pods ready
+        run: |
+          echo "Waiting for dialtone pods to be ready..."
+          kubectl wait --for=condition=ready pod \
+            -l app.kubernetes.io/name=dialtone,app.kubernetes.io/component=server \
+            -n ${{ env.NAMESPACE }} --timeout=300s
+
+          echo ""
+          echo "Waiting for skalholt pods to be ready..."
+          kubectl wait --for=condition=ready pod \
+            -l app.kubernetes.io/name=dialtone,app.kubernetes.io/component=skalholt \
+            -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: Skalholt pods not ready (may be disabled)"
+
+      - name: Verify deployment
+        run: |
+          echo "==> Deployment status:"
+          kubectl get deployments -n ${{ env.NAMESPACE }}
+
+          echo ""
+          echo "==> Pod status:"
+          kubectl get pods -n ${{ env.NAMESPACE }}
+
+          echo ""
+          echo "==> Services:"
+          kubectl get services -n ${{ env.NAMESPACE }}
+
+          echo ""
+          echo "==> Ingress:"
+          kubectl get ingress -n ${{ env.NAMESPACE }}
+
+          echo ""
+          echo "==> Certificate status:"
+          kubectl get certificates -n ${{ env.NAMESPACE }} || echo "No certificates yet"
+
+      - name: Deployment summary
+        run: |
+          echo "=========================================="
+          echo "Production deployment complete!"
+          echo "=========================================="
+          echo ""
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}"
+          echo "Namespace: ${{ env.NAMESPACE }}"
+          echo ""
+          echo "Endpoints:"
+          echo "  Web UI: https://dialtone.live"
+          echo "  Health: https://dialtone.live/api/health"
+          echo "  AOL TCP: dialtone.live:5190"
+          echo ""
+          echo "Monitor logs:"
+          echo "  kubectl logs -f -l app.kubernetes.io/name=dialtone -n ${{ env.NAMESPACE }}"

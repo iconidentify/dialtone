@@ -1,0 +1,27 @@
+{{- if .Values.skalholt.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dialtone.fullname" . }}-skalholt
+  labels:
+    {{- include "dialtone.labels" . | nindent 4 }}
+    app.kubernetes.io/component: skalholt
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ include "dialtone.name" . }}
+    app.kubernetes.io/component: skalholt
+  ports:
+    - name: telnet-color
+      port: 8161
+      targetPort: telnet-color
+    - name: telnet
+      port: 8162
+      targetPort: telnet
+    - name: http-api
+      port: 8163
+      targetPort: http-api
+    - name: websocket
+      port: 8164
+      targetPort: websocket
+{{- end }}

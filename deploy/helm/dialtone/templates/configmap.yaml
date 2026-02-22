@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dialtone.fullname" . }}-config
+  labels:
+    {{- include "dialtone.labels" . | nindent 4 }}
+data:
+  application.properties: |
+    # Server
+    server.port={{ .Values.config.serverPort }}
+    verbose={{ .Values.config.verbose }}
+    bind.address={{ .Values.config.bindAddress }}
+    web.port={{ .Values.config.webPort }}
+    web.bind.address={{ .Values.config.webBindAddress }}
+
+    # Database
+    db.path={{ .Values.config.dbPath }}
+    db.pool.max.size={{ .Values.config.dbPoolMaxSize }}
+    db.pool.min.idle={{ .Values.config.dbPoolMinIdle }}
+    db.connection.timeout={{ .Values.config.dbConnectionTimeout }}
+
+    # OAuth Redirect URIs
+    x.oauth.redirect.uri={{ .Values.config.xOauthRedirectUri }}
+    discord.oauth.redirect.uri={{ .Values.config.discordOauthRedirectUri }}
+
+    # Session
+    session.timeout.minutes={{ .Values.config.sessionTimeoutMinutes }}
+    jwt.expiry.hours={{ .Values.config.jwtExpiryHours }}
+
+    # Development
+    development.mode={{ .Values.config.developmentMode }}
+    cors.allowed.origins={{ .Values.config.corsAllowedOrigins }}
+
+    # Auth
+    auth.mode={{ .Values.config.authMode }}
+    auth.ephemeral.fallback.enabled={{ .Values.config.authEphemeralFallbackEnabled }}
+
+    # FDO
+    fdo.compiler.backend={{ .Values.config.fdoCompilerBackend }}
+
+    # P3
+    p3.max.frame.length={{ .Values.config.p3MaxFrameLength }}
+    pacer.inter.frame.delay.ms={{ .Values.config.pacerInterFrameDelayMs }}
+
+    # Grok
+    grok.enabled={{ .Values.config.grokEnabled }}
+    grok.base.url={{ .Values.config.grokBaseUrl }}
+    grok.model={{ .Values.config.grokModel }}
+    grok.timeout.ms={{ .Values.config.grokTimeoutMs }}
+    grok.refresh.interval.minutes={{ .Values.config.grokRefreshIntervalMinutes }}
+    grok.retry.enabled={{ .Values.config.grokRetryEnabled }}
+    grok.retry.delay.seconds={{ .Values.config.grokRetryDelaySeconds }}
+    grok.daily.quota={{ .Values.config.grokDailyQuota }}
+    grok.search.enabled={{ .Values.config.grokSearchEnabled }}
+    grok.search.mode={{ .Values.config.grokSearchMode }}
+    grok.search.sources={{ .Values.config.grokSearchSources }}
+    grok.search.max_results={{ .Values.config.grokSearchMaxResults }}
+    grok.story.summary.sentences={{ .Values.config.grokStorySummarySentences }}
+    grok.story.headline.words.min={{ .Values.config.grokStoryHeadlineWordsMin }}
+    grok.story.headline.words.max={{ .Values.config.grokStoryHeadlineWordsMax }}
+
+    # Chat Bot
+    grok.chat.max.tokens={{ .Values.config.grokChatMaxTokens }}
+    grok.chat.temperature={{ .Values.config.grokChatTemperature }}
+    grok.chat.system.prompt={{ .Values.config.grokChatSystemPrompt }}
+    bot.response.timeout.ms={{ .Values.config.botResponseTimeoutMs }}
+
+    # Formatter
+    formatter.chat.room.limit={{ .Values.config.formatterChatRoomLimit }}
+    formatter.im.limit={{ .Values.config.formatterImLimit }}
+    formatter.split.delay.ms={{ .Values.config.formatterSplitDelayMs }}
+    formatter.ai.splitting.enabled={{ .Values.config.formatterAiSplittingEnabled }}
+    formatter.max.messages={{ .Values.config.formatterMaxMessages }}
+
+    # News
+    news.base.persist.dir={{ .Values.config.newsBasePersistDir }}
+    news.default.refresh.interval.minutes={{ .Values.config.newsDefaultRefreshIntervalMinutes }}
+    news.default.daily.quota={{ .Values.config.newsDefaultDailyQuota }}
+    news.default.keep.count={{ .Values.config.newsDefaultKeepCount }}
+    news.general.refresh.interval.minutes={{ .Values.config.newsGeneralRefreshIntervalMinutes }}
+
+    # Admin
+    admin.enabled={{ .Values.config.adminEnabled }}
+    admin.x.usernames={{ .Values.config.adminXUsernames }}
+    admin.auto.promote={{ .Values.config.adminAutoPromote }}
+    admin.max.screennames.override={{ .Values.config.adminMaxScreennamesOverride }}
+    admin.session.timeout.minutes={{ .Values.config.adminSessionTimeoutMinutes }}
+    admin.require.confirmation.for.destructive.actions={{ .Values.config.adminRequireConfirmationForDestructiveActions }}
+    admin.rate.limit.requests.per.minute={{ .Values.config.adminRateLimitRequestsPerMinute }}
+    admin.audit.log.retention.days={{ .Values.config.adminAuditLogRetentionDays }}
+    admin.audit.log.max.entries={{ .Values.config.adminAuditLogMaxEntries }}
+
+    # Email
+    email.enabled={{ .Values.config.emailEnabled }}
+    email.from.address={{ .Values.config.emailFromAddress }}
+    email.from.name={{ .Values.config.emailFromName }}
+    email.magic.link.expiry.minutes={{ .Values.config.emailMagicLinkExpiryMinutes }}
+    email.base.url={{ .Values.config.emailBaseUrl }}
+    email.rate.limit.per.hour={{ .Values.config.emailRateLimitPerHour }}
+
+    # File Transfer
+    transfer.max.file.size.mb={{ .Values.config.transferMaxFileSizeMb }}
+
+    # Storage
+    storage.type={{ .Values.config.storageType }}
+    storage.local.base.dir={{ .Values.config.storageLocalBaseDir }}
+    storage.local.max.file.size.mb={{ .Values.config.storageLocalMaxFileSizeMb }}
+
+    # Button Theming
+    button.color.face={{ .Values.config.buttonColorFace }}
+    button.color.text={{ .Values.config.buttonColorText }}
+    button.color.top.edge={{ .Values.config.buttonColorTopEdge }}
+    button.color.bottom.edge={{ .Values.config.buttonColorBottomEdge }}
+
+    # Upload
+    upload.phase.timeout.ms={{ .Values.config.uploadPhaseTimeoutMs }}
+    upload.tn.enabled={{ .Values.config.uploadTnEnabled }}
+    upload.tn.interval.frames={{ .Values.config.uploadTnIntervalFrames }}
+    upload.ack.enabled={{ .Values.config.uploadAckEnabled }}
+    upload.ack.interval.frames={{ .Values.config.uploadAckIntervalFrames }}
+
+    # Skalholt
+    telnet.host={{ .Values.config.telnetHost }}
+    telnet.port={{ .Values.config.telnetPort }}
+    telnet.timeout.ms={{ .Values.config.telnetTimeoutMs }}
+    skalholt.api.host={{ .Values.config.skalholtApiHost }}
+    skalholt.api.port={{ .Values.config.skalholtApiPort }}
+    skalholt.api.timeout.ms={{ .Values.config.skalholtApiTimeoutMs }}
+    skalholt.eventstream.enabled={{ .Values.config.skalholtEventstreamEnabled }}

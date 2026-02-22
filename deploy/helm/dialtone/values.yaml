@@ -1,0 +1,219 @@
+image:
+  repository: ghcr.io/iconidentify/dialtone
+  pullPolicy: Always
+  tag: ""
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+service:
+  web:
+    type: ClusterIP
+    port: 80
+    targetPort: 5200
+
+aolService:
+  enabled: false
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: dialtone.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+persistence:
+  db:
+    size: 5Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+  storage:
+    size: 10Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+config:
+  # Server
+  serverPort: "5191"
+  verbose: "true"
+  bindAddress: "0.0.0.0"
+  webPort: "5200"
+  webBindAddress: "0.0.0.0"
+
+  # Database
+  dbPath: "db/dialtone.db"
+  dbPoolMaxSize: "10"
+  dbPoolMinIdle: "2"
+  dbConnectionTimeout: "30000"
+
+  # OAuth redirect URIs
+  xOauthRedirectUri: "http://localhost:5200/api/auth/x/callback"
+  discordOauthRedirectUri: "http://localhost:5200/api/auth/discord/callback"
+
+  # Session
+  sessionTimeoutMinutes: "1440"
+  jwtExpiryHours: "24"
+
+  # Development
+  developmentMode: "false"
+  corsAllowedOrigins: "http://localhost:3000,http://localhost:5173,http://localhost:5200"
+
+  # Auth
+  authMode: "database"
+  authEphemeralFallbackEnabled: "true"
+
+  # FDO
+  fdoCompilerBackend: "java"
+
+  # P3
+  p3MaxFrameLength: "512"
+  pacerInterFrameDelayMs: "0"
+
+  # Grok
+  grokEnabled: "true"
+  grokBaseUrl: "https://api.x.ai/v1"
+  grokModel: "grok-4"
+  grokTimeoutMs: "180000"
+  grokRefreshIntervalMinutes: "1440"
+  grokRetryEnabled: "false"
+  grokRetryDelaySeconds: "50"
+  grokDailyQuota: "10"
+  grokSearchEnabled: "true"
+  grokSearchMode: "auto"
+  grokSearchSources: "web,news,x"
+  grokSearchMaxResults: "20"
+  grokStorySummarySentences: "4"
+  grokStoryHeadlineWordsMin: "12"
+  grokStoryHeadlineWordsMax: "18"
+
+  # Chat
+  grokChatMaxTokens: "1000"
+  grokChatTemperature: "0.8"
+  grokChatSystemPrompt: >-
+    You are Grok, a friendly and knowledgeable AI assistant from the classic instant messenger era.
+    You are helpful, conversational, and have a warm personality.
+    Give complete, helpful answers - your responses will be automatically split into multiple chat messages.
+    Use short sentences that flow naturally. Avoid bullet points, numbered lists, or markdown formatting.
+    Write like you are chatting with a friend - conversational and warm.
+    IMPORTANT: Never use emojis or non-ASCII characters in your responses.
+    This is a 1995 ASCII-only protocol that cannot handle emojis.
+    Use plain text only with standard punctuation.
+
+  # Bot
+  botResponseTimeoutMs: "120000"
+
+  # Formatter
+  formatterChatRoomLimit: "68"
+  formatterImLimit: "512"
+  formatterSplitDelayMs: "500"
+  formatterAiSplittingEnabled: "true"
+  formatterMaxMessages: "10"
+
+  # News
+  newsBasePersistDir: "src/main/resources/news"
+  newsDefaultRefreshIntervalMinutes: "1440"
+  newsDefaultDailyQuota: "10"
+  newsDefaultKeepCount: "10"
+  newsGeneralRefreshIntervalMinutes: "30"
+
+  # Admin
+  adminEnabled: "false"
+  adminXUsernames: ""
+  adminAutoPromote: "true"
+  adminMaxScreennamesOverride: "20"
+  adminSessionTimeoutMinutes: "30"
+  adminRequireConfirmationForDestructiveActions: "true"
+  adminRateLimitRequestsPerMinute: "60"
+  adminAuditLogRetentionDays: "365"
+  adminAuditLogMaxEntries: "100000"
+
+  # Email
+  emailEnabled: "true"
+  emailFromAddress: "support@dialtone.live"
+  emailFromName: "Dialtone"
+  emailMagicLinkExpiryMinutes: "15"
+  emailBaseUrl: "http://localhost:5200"
+  emailRateLimitPerHour: "3"
+
+  # File Transfer
+  transferMaxFileSizeMb: "100"
+
+  # Storage
+  storageType: "local"
+  storageLocalBaseDir: "storage"
+  storageLocalMaxFileSizeMb: "100"
+
+  # Button Theming
+  buttonColorFace: "252, 157, 44"
+  buttonColorText: "0, 30, 55"
+  buttonColorTopEdge: "255, 200, 100"
+  buttonColorBottomEdge: "150, 90, 20"
+
+  # Upload
+  uploadPhaseTimeoutMs: "300000"
+  uploadTnEnabled: "false"
+  uploadTnIntervalFrames: "6"
+  uploadAckEnabled: "true"
+  uploadAckIntervalFrames: "8"
+
+  # Skalholt
+  telnetHost: "localhost"
+  telnetPort: "8162"
+  telnetTimeoutMs: "30000"
+  skalholtApiHost: "localhost"
+  skalholtApiPort: "8163"
+  skalholtApiTimeoutMs: "10000"
+  skalholtEventstreamEnabled: "true"
+
+secrets:
+  existingSecretName: ""
+  xOauthClientId: ""
+  xOauthClientSecret: ""
+  discordOauthClientId: ""
+  discordOauthClientSecret: ""
+  jwtSecret: ""
+  grokApiKey: ""
+  emailResendApiKey: ""
+  skalholtSsoSecret: ""
+
+skalholt:
+  enabled: true
+  image:
+    repository: ghcr.io/iconidentify/skalholt
+    pullPolicy: Always
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  persistence:
+    size: 5Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+  config:
+    existingSecretName: ""

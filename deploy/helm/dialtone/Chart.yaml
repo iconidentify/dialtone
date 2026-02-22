@@ -1,0 +1,6 @@
+apiVersion: v2
+name: dialtone
+description: Dialtone AOL protocol server and web management interface
+type: application
+version: 0.1.0
+appVersion: "latest"

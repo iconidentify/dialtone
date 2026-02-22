@@ -1,0 +1,69 @@
+# Production values for dialtone Helm chart
+# Used with: helm upgrade --install dialtone ./deploy/helm/dialtone \
+#            -n dialtone -f deploy/helm/values-production.yaml
+
+image:
+  repository: ghcr.io/iconidentify/dialtone
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+secrets:
+  existingSecretName: dialtone-secrets
+
+aolService:
+  enabled: true
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  hosts:
+    - host: dialtone.live
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: dialtone-tls
+      hosts:
+        - dialtone.live
+
+persistence:
+  db:
+    storageClassName: linode-block-storage
+    size: 5Gi
+  storage:
+    storageClassName: linode-block-storage
+    size: 10Gi
+
+config:
+  corsAllowedOrigins: "https://dialtone.live"
+  emailBaseUrl: "https://dialtone.live"
+  xOauthRedirectUri: "https://dialtone.live/api/auth/x/callback"
+  discordOauthRedirectUri: "https://dialtone.live/api/auth/discord/callback"
+  developmentMode: "false"
+  adminEnabled: "true"
+  adminXUsernames: "SiliconForested"
+  grokEnabled: "true"
+  emailEnabled: "true"
+  skalholtApiHost: "dialtone-skalholt"
+  telnetHost: "dialtone-skalholt"
+
+skalholt:
+  enabled: true
+  config:
+    existingSecretName: skalholt-config
+  persistence:
+    storageClassName: linode-block-storage
+    size: 5Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi

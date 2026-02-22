@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dialtone.fullname" . }}
+  labels:
+    {{- include "dialtone.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.web.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "dialtone.name" . }}
+    app.kubernetes.io/component: server
+  ports:
+    - name: http
+      port: {{ .Values.service.web.port }}
+      targetPort: web
