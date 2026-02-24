@@ -130,6 +130,12 @@ jobs:
           GITHUB_ACTOR=${{ github.actor }}
           GITHUB_TOKEN=${{ secrets.PACKAGES_READ_TOKEN }}
 
+    - name: Extract short SHA
+      id: sha
+      run: |
+        SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
+        echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
+
     - name: Generate deployment summary
       run: |
         echo "## Docker Image Built and Pushed" >> $GITHUB_STEP_SUMMARY
@@ -137,12 +143,82 @@ jobs:
         echo "**Image:** ${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
         echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
         echo '${{ steps.meta.outputs.tags }}' | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Quick Deploy Commands" >> $GITHUB_STEP_SUMMARY
-        echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "# Pull the image" >> $GITHUB_STEP_SUMMARY
-        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "# Run with docker-compose (update image tag in docker-compose.yml first)" >> $GITHUB_STEP_SUMMARY
-        echo "docker-compose up -d" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Extract short SHA
+        id: meta
+        run: |
+          SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
+
+      - name: Install kubectl
+        run: |
+          curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.LINODE_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Deploy to Kubernetes
+        run: |
+          IMAGE_TAG="${{ steps.meta.outputs.sha_short }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${IMAGE_TAG}"
+          echo "Deploying image: ${IMAGE}"
+          kubectl set image deployment/dialtone dialtone="${IMAGE}" -n dialtone
+
+      - name: Verify deployment
+        run: |
+          EXPECTED_TAG="${{ steps.meta.outputs.sha_short }}"
+          echo "Expected image tag: sha-${EXPECTED_TAG}"
+
+          echo "Waiting for rollout..."
+          kubectl rollout status deployment/dialtone -n dialtone --timeout=120s
+
+          ACTUAL=$(kubectl get deployment dialtone -n dialtone \
+            -o jsonpath='{.spec.template.spec.containers[0].image}')
+          echo "Running image: ${ACTUAL}"
+
+          if [[ "${ACTUAL}" != *"${EXPECTED_TAG}"* ]]; then
+            echo "ERROR: Running image does not match expected tag!"
+            exit 1
+          fi
+
+          echo ""
+          echo "==> Deployment verified: sha-${EXPECTED_TAG}"
+          kubectl get pods -n dialtone -o custom-columns='NAME:.metadata.name,IMAGE:.spec.containers[*].image,STATUS:.status.phase'
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "==> Pod status:"
+          kubectl get pods -n dialtone -o wide 2>/dev/null || true
+
+          echo ""
+          echo "==> Recent events:"
+          kubectl get events -n dialtone --sort-by='.lastTimestamp' 2>/dev/null | tail -30 || true
+
+          echo ""
+          echo "==> Pod logs (last 30 lines):"
+          for pod in $(kubectl get pods -n dialtone --no-headers -o custom-columns=':metadata.name' 2>/dev/null); do
+            echo "--- ${pod} ---"
+            kubectl logs "${pod}" -n dialtone --tail=30 2>/dev/null || true
+          done
