@@ -14,17 +14,24 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.util.Timeout;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
- * Client for xAI Grok API.
- * Handles HTTP communication with Grok's chat completions endpoint.
+ * Client for xAI Grok Responses API (/v1/responses).
+ * Migrated from the deprecated Chat Completions API with Live Search
+ * to the new Agent Tools API with web_search and x_search tools.
  */
 public class GrokClient implements AutoCloseable {
 
     private static final String DEFAULT_BASE_URL = "https://api.x.ai/v1";
-    private static final String DEFAULT_MODEL = "grok-4-fast-reasoning";
+    private static final String DEFAULT_MODEL = "grok-4-fast";
     private static final int DEFAULT_TIMEOUT_MS = 10000;
+
+    // Pattern to strip inline citation markdown like [[1]](url)
+    private static final Pattern CITATION_PATTERN = Pattern.compile("\\[\\[\\d+\\]\\]\\([^)]+\\)");
 
     private final String baseUrl;
     private final String apiKey;
@@ -36,11 +43,9 @@ public class GrokClient implements AutoCloseable {
     // Global kill switch
     private final boolean enabled;
 
-    // Live Search configuration
+    // Search tools configuration
     private final boolean searchEnabled;
-    private final String searchMode;
     private final String[] searchSources;
-    private final int maxSearchResults;
 
     public GrokClient(Properties properties) {
         this.baseUrl = properties.getProperty("grok.base.url", DEFAULT_BASE_URL);
@@ -53,20 +58,18 @@ public class GrokClient implements AutoCloseable {
         // Global kill switch (default: true/enabled for backwards compatibility)
         this.enabled = Boolean.parseBoolean(properties.getProperty("grok.enabled", "true"));
 
-        // Live Search configuration
+        // Search tools configuration
         this.searchEnabled = Boolean.parseBoolean(properties.getProperty("grok.search.enabled", "true"));
-        this.searchMode = properties.getProperty("grok.search.mode", "auto");
-        String sourcesProperty = properties.getProperty("grok.search.sources", "web,news,x");
+        String sourcesProperty = properties.getProperty("grok.search.sources", "web_search,x_search");
         this.searchSources = sourcesProperty.split(",");
-        this.maxSearchResults = Integer.parseInt(properties.getProperty("grok.search.max_results", "20"));
 
         if (apiKey == null || apiKey.isEmpty()) {
             throw new IllegalArgumentException("grok.api.key must be configured in application.properties");
         }
 
         LoggerUtil.info("GrokClient initialized: enabled=" + enabled + ", model=" + model +
-                        ", searchEnabled=" + searchEnabled + ", searchMode=" + searchMode +
-                        ", sources=" + String.join(",", searchSources));
+                        ", searchEnabled=" + searchEnabled +
+                        ", tools=" + String.join(",", searchSources));
     }
 
     public GrokClient(String baseUrl, String apiKey, String model, int timeoutMs) {
@@ -80,11 +83,9 @@ public class GrokClient implements AutoCloseable {
         // Default: enabled (for test constructor)
         this.enabled = true;
 
-        // Default Live Search configuration for this constructor
+        // Default search tools configuration for this constructor
         this.searchEnabled = true;
-        this.searchMode = "auto";
-        this.searchSources = new String[]{"web", "news", "x"};
-        this.maxSearchResults = 20;
+        this.searchSources = new String[]{"web_search", "x_search"};
 
         if (apiKey == null || apiKey.isEmpty()) {
             throw new IllegalArgumentException("API key cannot be null or empty");
@@ -92,9 +93,9 @@ public class GrokClient implements AutoCloseable {
     }
 
     /**
-     * Send a chat completion request to Grok API.
+     * Send a request to the xAI Responses API.
      *
-     * @param request The chat request with messages
+     * @param request The request with input messages and tools
      * @return The response from Grok containing generated content
      * @throws IOException if the request fails
      */
@@ -107,7 +108,7 @@ public class GrokClient implements AutoCloseable {
 
         long startTime = System.currentTimeMillis();
         try {
-            String url = baseUrl + "/chat/completions";
+            String url = baseUrl + "/responses";
             HttpPost post = new HttpPost(url);
 
             post.setConfig(org.apache.hc.client5.http.config.RequestConfig.custom()
@@ -157,106 +158,120 @@ public class GrokClient implements AutoCloseable {
     }
 
     /**
-     * Create a simple chat request with a user message.
+     * Create a simple request with a user message.
      *
      * @param userMessage The message from the user
-     * @return A configured chat request
+     * @return A configured request
      */
     public GrokChatRequest createRequest(String userMessage) {
         GrokChatRequest request = new GrokChatRequest();
         request.setModel(model);
         request.addMessage("user", userMessage);
         request.setTemperature(0.7);
-        request.setMaxTokens(1000);
+        request.setMaxOutputTokens(1000);
 
-        // Add Live Search parameters if enabled
-        SearchParameters searchParams = buildSearchParameters();
-        if (searchParams != null) {
-            request.setSearchParameters(searchParams);
-            LoggerUtil.debug(() -> "Live Search enabled: mode=" + searchMode +
-                                   ", sources=" + String.join(",", searchSources));
+        // Add search tools if enabled
+        List<GrokChatRequest.Tool> tools = buildTools();
+        if (tools != null) {
+            request.setTools(tools);
+            LoggerUtil.debug(() -> "Search tools enabled: " + String.join(",", searchSources));
         }
 
         return request;
     }
 
     /**
-     * Extract the content from the first choice in the response.
-     * Also logs Live Search citations if present.
+     * Extract the text content from the response.
+     * Finds the message output item and extracts the output_text content.
+     * Also logs search tool citations if present.
      *
      * @param response The Grok API response
      * @return The generated content text, or null if not available
      */
     public String extractContent(GrokChatResponse response) {
-        if (response == null || response.getChoices() == null || response.getChoices().isEmpty()) {
+        if (response == null || response.getOutput() == null || response.getOutput().isEmpty()) {
             return null;
         }
 
-        GrokChatResponse.Choice firstChoice = response.getChoices().get(0);
-        if (firstChoice.getMessage() == null) {
-            return null;
-        }
-
-        // Log Live Search citations if present
-        GrokChatResponse.Message message = firstChoice.getMessage();
-        if (message.getCitations() != null && !message.getCitations().isEmpty()) {
-            int citationCount = message.getCitations().size();
-            LoggerUtil.info("Live Search ACTIVE: " + citationCount + " sources used");
-
-            // Log source types breakdown
-            java.util.Map<String, Long> sourceTypeCounts = message.getCitations().stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                    c -> c.getSourceType() != null ? c.getSourceType() : "unknown",
-                    java.util.stream.Collectors.counting()
-                ));
-
-            sourceTypeCounts.forEach((type, count) ->
-                LoggerUtil.info("  - " + type + ": " + count + " sources")
-            );
-
-            // Log first few citation titles for verification
-            int logCount = Math.min(3, citationCount);
-            for (int i = 0; i < logCount; i++) {
-                GrokChatResponse.Citation citation = message.getCitations().get(i);
-                String title = citation.getTitle() != null ? citation.getTitle() : "No title";
-                final int citationNum = i + 1;
-                final String citationTitle = title;
-                LoggerUtil.debug(() -> "  Citation " + citationNum + ": " + citationTitle);
+        // Find the message output item
+        GrokChatResponse.OutputItem messageItem = null;
+        int toolCallCount = 0;
+        for (GrokChatResponse.OutputItem item : response.getOutput()) {
+            if (item.isMessage()) {
+                messageItem = item;
+            } else {
+                toolCallCount++;
             }
-        } else {
-            LoggerUtil.warn("Live Search NOT used - no citations returned (check search_parameters configuration)");
         }
 
-        return message.getContent();
+        if (toolCallCount > 0) {
+            LoggerUtil.info("Search tools used: " + toolCallCount + " tool call(s)");
+        }
+
+        if (messageItem == null || messageItem.getContent() == null || messageItem.getContent().isEmpty()) {
+            LoggerUtil.warn("No message content in response");
+            return null;
+        }
+
+        // Extract text from output_text content items
+        StringBuilder textBuilder = new StringBuilder();
+        int totalAnnotations = 0;
+
+        for (GrokChatResponse.ContentItem contentItem : messageItem.getContent()) {
+            if (contentItem.isOutputText() && contentItem.getText() != null) {
+                textBuilder.append(contentItem.getText());
+
+                // Count annotations (citations)
+                if (contentItem.getAnnotations() != null) {
+                    totalAnnotations += contentItem.getAnnotations().size();
+
+                    // Log first few citation URLs for verification
+                    int logCount = Math.min(3, contentItem.getAnnotations().size());
+                    for (int i = 0; i < logCount; i++) {
+                        GrokChatResponse.Annotation annotation = contentItem.getAnnotations().get(i);
+                        if (annotation.isUrlCitation()) {
+                            final String url = annotation.getUrl();
+                            final int num = i + 1;
+                            LoggerUtil.debug(() -> "  Citation " + num + ": " + url);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (totalAnnotations > 0) {
+            LoggerUtil.info("Search citations: " + totalAnnotations + " source(s) referenced");
+        }
+
+        String rawText = textBuilder.toString();
+
+        // Strip inline citation markdown (e.g., [[1]](url)) for clean text
+        String cleanText = CITATION_PATTERN.matcher(rawText).replaceAll("").trim();
+
+        return cleanText;
     }
 
     /**
-     * Build SearchParameters based on configuration.
+     * Build search tools list based on configuration.
      * Returns null if search is disabled.
      *
-     * @return Configured SearchParameters, or null if disabled
+     * @return List of Tool objects, or null if disabled
      */
-    public SearchParameters buildSearchParameters() {
+    public List<GrokChatRequest.Tool> buildTools() {
         if (!searchEnabled) {
             return null;
         }
 
-        SearchParameters searchParams = new SearchParameters.Builder()
-                .mode(searchMode)
-                .returnCitations(true)
-                .maxSearchResults(maxSearchResults)
-                .build();
-
-        // Add configured sources
+        List<GrokChatRequest.Tool> tools = new ArrayList<>();
         for (String source : searchSources) {
-            searchParams.addSource(source.trim());
+            tools.add(new GrokChatRequest.Tool(source.trim()));
         }
 
-        return searchParams;
+        return tools;
     }
 
     /**
-     * Check if live search is enabled.
+     * Check if search tools are enabled.
      *
      * @return true if search is enabled
      */

@@ -66,11 +66,9 @@ grok.retry.delay.seconds=50
 # Daily API quota (max fetches per 24 hours across all services)
 grok.daily.quota=10
 
-# Grok Live Search configuration
+# Grok Search Tools configuration (web_search, x_search via Responses API)
 grok.search.enabled=true
-grok.search.mode=auto
-grok.search.sources=web,news,x
-grok.search.max_results=20
+grok.search.sources=web_search,x_search
 
 # Story formatting configuration
 grok.story.summary.sentences=4

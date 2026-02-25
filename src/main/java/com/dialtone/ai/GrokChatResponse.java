@@ -10,8 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * Response model for xAI Grok API chat completions.
- * Compatible with OpenAI API format.
+ * Response model for xAI Responses API (/v1/responses).
+ * The response contains an output array with tool call records and message objects.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GrokChatResponse {
@@ -22,17 +22,26 @@ public class GrokChatResponse {
     @JsonProperty("object")
     private String object;
 
-    @JsonProperty("created")
-    private Long created;
+    @JsonProperty("created_at")
+    private Long createdAt;
+
+    @JsonProperty("completed_at")
+    private Long completedAt;
 
     @JsonProperty("model")
     private String model;
 
-    @JsonProperty("choices")
-    private List<Choice> choices;
+    @JsonProperty("output")
+    private List<OutputItem> output;
 
     @JsonProperty("usage")
     private Usage usage;
+
+    @JsonProperty("status")
+    private String status;
+
+    @JsonProperty("error")
+    private Object error;
 
     public String getId() {
         return id;
@@ -50,12 +59,20 @@ public class GrokChatResponse {
         this.object = object;
     }
 
-    public Long getCreated() {
-        return created;
+    public Long getCreatedAt() {
+        return createdAt;
     }
 
-    public void setCreated(Long created) {
-        this.created = created;
+    public void setCreatedAt(Long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Long getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(Long completedAt) {
+        this.completedAt = completedAt;
     }
 
     public String getModel() {
@@ -66,12 +83,12 @@ public class GrokChatResponse {
         this.model = model;
     }
 
-    public List<Choice> getChoices() {
-        return choices;
+    public List<OutputItem> getOutput() {
+        return output;
     }
 
-    public void setChoices(List<Choice> choices) {
-        this.choices = choices;
+    public void setOutput(List<OutputItem> output) {
+        this.output = output;
     }
 
     public Usage getUsage() {
@@ -82,52 +99,58 @@ public class GrokChatResponse {
         this.usage = usage;
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Choice {
-        @JsonProperty("index")
-        private Integer index;
-
-        @JsonProperty("message")
-        private Message message;
-
-        @JsonProperty("finish_reason")
-        private String finishReason;
-
-        public Integer getIndex() {
-            return index;
-        }
-
-        public void setIndex(Integer index) {
-            this.index = index;
-        }
-
-        public Message getMessage() {
-            return message;
-        }
-
-        public void setMessage(Message message) {
-            this.message = message;
-        }
-
-        public String getFinishReason() {
-            return finishReason;
-        }
-
-        public void setFinishReason(String finishReason) {
-            this.finishReason = finishReason;
-        }
+    public String getStatus() {
+        return status;
     }
 
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Object getError() {
+        return error;
+    }
+
+    public void setError(Object error) {
+        this.error = error;
+    }
+
+    /**
+     * An item in the output array. Can be a tool call (web_search_call, x_search_call)
+     * or a message (type=message) containing the assistant's response.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Message {
+    public static class OutputItem {
+        @JsonProperty("id")
+        private String id;
+
+        @JsonProperty("type")
+        private String type;
+
         @JsonProperty("role")
         private String role;
 
-        @JsonProperty("content")
-        private String content;
+        @JsonProperty("status")
+        private String status;
 
-        @JsonProperty("citations")
-        private List<Citation> citations;
+        @JsonProperty("content")
+        private List<ContentItem> content;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
 
         public String getRole() {
             return role;
@@ -137,43 +160,47 @@ public class GrokChatResponse {
             this.role = role;
         }
 
-        public String getContent() {
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public List<ContentItem> getContent() {
             return content;
         }
 
-        public void setContent(String content) {
+        public void setContent(List<ContentItem> content) {
             this.content = content;
         }
 
-        public List<Citation> getCitations() {
-            return citations;
-        }
-
-        public void setCitations(List<Citation> citations) {
-            this.citations = citations;
+        public boolean isMessage() {
+            return "message".equals(type);
         }
     }
 
+    /**
+     * A content item within a message output. Contains the actual text and annotations.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Citation {
-        @JsonProperty("url")
-        private String url;
+    public static class ContentItem {
+        @JsonProperty("type")
+        private String type;
 
         @JsonProperty("text")
         private String text;
 
-        @JsonProperty("title")
-        private String title;
+        @JsonProperty("annotations")
+        private List<Annotation> annotations;
 
-        @JsonProperty("source_type")
-        private String sourceType;
-
-        public String getUrl() {
-            return url;
+        public String getType() {
+            return type;
         }
 
-        public void setUrl(String url) {
-            this.url = url;
+        public void setType(String type) {
+            this.type = type;
         }
 
         public String getText() {
@@ -184,6 +211,56 @@ public class GrokChatResponse {
             this.text = text;
         }
 
+        public List<Annotation> getAnnotations() {
+            return annotations;
+        }
+
+        public void setAnnotations(List<Annotation> annotations) {
+            this.annotations = annotations;
+        }
+
+        public boolean isOutputText() {
+            return "output_text".equals(type);
+        }
+    }
+
+    /**
+     * Citation annotation attached to output text.
+     * Contains URL, title, and position indices within the text.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Annotation {
+        @JsonProperty("type")
+        private String type;
+
+        @JsonProperty("url")
+        private String url;
+
+        @JsonProperty("title")
+        private String title;
+
+        @JsonProperty("start_index")
+        private Integer startIndex;
+
+        @JsonProperty("end_index")
+        private Integer endIndex;
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
         public String getTitle() {
             return title;
         }
@@ -192,40 +269,52 @@ public class GrokChatResponse {
             this.title = title;
         }
 
-        public String getSourceType() {
-            return sourceType;
+        public Integer getStartIndex() {
+            return startIndex;
         }
 
-        public void setSourceType(String sourceType) {
-            this.sourceType = sourceType;
+        public void setStartIndex(Integer startIndex) {
+            this.startIndex = startIndex;
+        }
+
+        public Integer getEndIndex() {
+            return endIndex;
+        }
+
+        public void setEndIndex(Integer endIndex) {
+            this.endIndex = endIndex;
+        }
+
+        public boolean isUrlCitation() {
+            return "url_citation".equals(type);
         }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Usage {
-        @JsonProperty("prompt_tokens")
-        private Integer promptTokens;
+        @JsonProperty("input_tokens")
+        private Integer inputTokens;
 
-        @JsonProperty("completion_tokens")
-        private Integer completionTokens;
+        @JsonProperty("output_tokens")
+        private Integer outputTokens;
 
         @JsonProperty("total_tokens")
         private Integer totalTokens;
 
-        public Integer getPromptTokens() {
-            return promptTokens;
+        public Integer getInputTokens() {
+            return inputTokens;
         }
 
-        public void setPromptTokens(Integer promptTokens) {
-            this.promptTokens = promptTokens;
+        public void setInputTokens(Integer inputTokens) {
+            this.inputTokens = inputTokens;
         }
 
-        public Integer getCompletionTokens() {
-            return completionTokens;
+        public Integer getOutputTokens() {
+            return outputTokens;
         }
 
-        public void setCompletionTokens(Integer completionTokens) {
-            this.completionTokens = completionTokens;
+        public void setOutputTokens(Integer outputTokens) {
+            this.outputTokens = outputTokens;
         }
 
         public Integer getTotalTokens() {

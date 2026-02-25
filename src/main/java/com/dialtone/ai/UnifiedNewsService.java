@@ -183,7 +183,7 @@ public class UnifiedNewsService implements AutoCloseable {
 
         String focus = switch (category) {
             case GENERAL -> "major world events, politics, and breaking news. " +
-                    "Use your Live Search capability to find RECENT news from X/Twitter, news outlets, and international sources. " +
+                    "Search the web and X/Twitter to find RECENT news from news outlets and international sources. " +
                     "\n\n" +
                     "EDITORIAL FOCUS:\n" +
                     "- Diverse perspectives from multiple sources\n" +
@@ -193,7 +193,7 @@ public class UnifiedNewsService implements AutoCloseable {
                     "- Skip celebrity gossip unless broadly significant\n";
 
             case CRYPTO -> "markets, economy, crypto, and monetary policy. " +
-                    "Use your Live Search capability to find RECENT financial news from X/Twitter, analysts, and market sources. " +
+                    "Search the web and X/Twitter to find RECENT financial news from analysts and market sources. " +
                     "\n\n" +
                     "EDITORIAL FOCUS:\n" +
                     "- Market movements and investor-relevant developments\n" +
@@ -203,7 +203,7 @@ public class UnifiedNewsService implements AutoCloseable {
                     "- Factual analysis with relevant market context\n";
 
             case SPORTS -> "major sports events, scores, and athlete news. " +
-                    "Use your Live Search capability to find RECENT sports news from X/Twitter, team sources, and sports media. " +
+                    "Search the web and X/Twitter to find RECENT sports news from team sources and sports media. " +
                     "\n\n" +
                     "EDITORIAL FOCUS:\n" +
                     "- Major game results and playoff implications\n" +
@@ -213,7 +213,7 @@ public class UnifiedNewsService implements AutoCloseable {
                     "- Emphasize competitive spirit and athletic achievement\n";
 
             case ENTERTAINMENT -> "entertainment news, movies, TV, music, and pop culture. " +
-                    "Use your Live Search capability to find RECENT entertainment news from X/Twitter, industry sources, and fan communities. " +
+                    "Search the web and X/Twitter to find RECENT entertainment news from industry sources and fan communities. " +
                     "\n\n" +
                     "EDITORIAL FOCUS:\n" +
                     "- Major releases, box office, and streaming hits\n" +
@@ -223,7 +223,7 @@ public class UnifiedNewsService implements AutoCloseable {
                     "- Focus on entertainment value and cultural impact\n";
 
             case TECH -> "AI/ML breakthroughs, tech innovation, and major tech developments. " +
-                    "Use your Live Search capability to find RECENT tech news from X/Twitter, research institutions, and tech industry sources. " +
+                    "Search the web and X/Twitter to find RECENT tech news from research institutions and tech industry sources. " +
                     "\n\n" +
                     "EDITORIAL FOCUS:\n" +
                     "- AI research and model releases\n" +
@@ -464,11 +464,11 @@ public class UnifiedNewsService implements AutoCloseable {
 
         GrokChatRequest request = grokClient.createRequest(prompt);
 
-        // Enable Live Search
-        SearchParameters searchParams = grokClient.buildSearchParameters();
-        if (searchParams != null) {
-            request.setSearchParameters(searchParams);
-            LoggerUtil.info("Live Search enabled for " + category.getKey() + " generation");
+        // Enable search tools (web_search, x_search)
+        java.util.List<GrokChatRequest.Tool> tools = grokClient.buildTools();
+        if (tools != null) {
+            request.setTools(tools);
+            LoggerUtil.info("Search tools enabled for " + category.getKey() + " generation");
         }
 
         GrokChatResponse response = grokClient.chatCompletion(request);

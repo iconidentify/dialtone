@@ -11,12 +11,16 @@ import com.dialtone.utils.MessageSplitter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Properties;
 
 /**
  * Service for generating conversational responses using Grok AI.
  * Designed for real-time chatbot interactions with low latency.
  * Unlike news services, this doesn't cache or persist - responses are generated on-demand.
+ *
+ * Uses the xAI Responses API (/v1/responses) with the instructions field
+ * for system prompts and input array for conversation history.
  */
 public class GrokConversationalService implements AutoCloseable {
 
@@ -196,7 +200,9 @@ public class GrokConversationalService implements AutoCloseable {
     }
 
     /**
-     * Build a chat request with system prompt, conversation history, and user message.
+     * Build a chat request using the Responses API format.
+     * System prompt and context go into the 'instructions' field.
+     * Conversation history and user message go into the 'input' array.
      */
     private GrokChatRequest buildChatRequest(String userMessage,
                                             java.util.List<ConversationMemoryManager.Message> history,
@@ -204,20 +210,11 @@ public class GrokConversationalService implements AutoCloseable {
         GrokChatRequest request = new GrokChatRequest();
         request.setModel(grokClient.getModel());
         request.setTemperature(temperature);
-        request.setMaxTokens(maxTokens);
+        request.setMaxOutputTokens(maxTokens);
 
-        // Add project knowledge first (provides context about Dialtone, AOL 3.0, tools)
-        if (projectKnowledge != null && !projectKnowledge.isEmpty()) {
-            request.addMessage("system", projectKnowledge);
-        }
-
-        // Add system prompt (personality and communication style)
-        request.addMessage("system", systemPrompt);
-
-        // Add context hint if provided (e.g., IM vs chat room context)
-        if (contextHint != null && !contextHint.trim().isEmpty()) {
-            request.addMessage("system", contextHint);
-        }
+        // Build combined instructions from project knowledge + system prompt + context hint
+        String instructions = buildInstructions(contextHint, null);
+        request.setInstructions(instructions);
 
         // Add conversation history if provided
         if (history != null && !history.isEmpty()) {
@@ -230,11 +227,11 @@ public class GrokConversationalService implements AutoCloseable {
         // Add current user message
         request.addMessage("user", userMessage);
 
-        // Add Live Search parameters if enabled
-        SearchParameters searchParams = grokClient.buildSearchParameters();
-        if (searchParams != null) {
-            request.setSearchParameters(searchParams);
-            LoggerUtil.debug(() -> "Live Search enabled for conversational request");
+        // Add search tools if enabled
+        List<GrokChatRequest.Tool> tools = grokClient.buildTools();
+        if (tools != null) {
+            request.setTools(tools);
+            LoggerUtil.debug(() -> "Search tools enabled for conversational request");
         }
 
         return request;
@@ -250,26 +247,11 @@ public class GrokConversationalService implements AutoCloseable {
         GrokChatRequest request = new GrokChatRequest();
         request.setModel(grokClient.getModel());
         request.setTemperature(temperature);
-        request.setMaxTokens(maxTokens);
+        request.setMaxOutputTokens(maxTokens);
 
-        // Add project knowledge first (provides context about Dialtone, AOL 3.0, tools)
-        if (projectKnowledge != null && !projectKnowledge.isEmpty()) {
-            request.addMessage("system", projectKnowledge);
-        }
-
-        // Add system prompt (personality and communication style)
-        request.addMessage("system", systemPrompt);
-
-        // Add character limit context based on response context
-        if (responseContext != null) {
-            String charLimitPrompt = buildCharacterLimitPrompt(responseContext);
-            request.addMessage("system", charLimitPrompt);
-        }
-
-        // Add context hint if provided (e.g., IM vs chat room context)
-        if (contextHint != null && !contextHint.trim().isEmpty()) {
-            request.addMessage("system", contextHint);
-        }
+        // Build combined instructions with response context
+        String instructions = buildInstructions(contextHint, responseContext);
+        request.setInstructions(instructions);
 
         // Add conversation history if provided
         if (history != null && !history.isEmpty()) {
@@ -282,14 +264,43 @@ public class GrokConversationalService implements AutoCloseable {
         // Add current user message
         request.addMessage("user", userMessage);
 
-        // Add Live Search parameters if enabled
-        SearchParameters searchParams = grokClient.buildSearchParameters();
-        if (searchParams != null) {
-            request.setSearchParameters(searchParams);
-            LoggerUtil.debug(() -> "Live Search enabled for conversational request");
+        // Add search tools if enabled
+        List<GrokChatRequest.Tool> tools = grokClient.buildTools();
+        if (tools != null) {
+            request.setTools(tools);
+            LoggerUtil.debug(() -> "Search tools enabled for conversational request");
         }
 
         return request;
+    }
+
+    /**
+     * Build the combined instructions string from all system-level context.
+     * Combines project knowledge, system prompt, context hint, and response context
+     * into a single instructions string for the Responses API.
+     */
+    private String buildInstructions(String contextHint, ResponseContext responseContext) {
+        StringBuilder instructions = new StringBuilder();
+
+        // Add project knowledge first (provides context about Dialtone, AOL 3.0, tools)
+        if (projectKnowledge != null && !projectKnowledge.isEmpty()) {
+            instructions.append(projectKnowledge).append("\n\n");
+        }
+
+        // Add system prompt (personality and communication style)
+        instructions.append(systemPrompt);
+
+        // Add character limit context based on response context
+        if (responseContext != null) {
+            instructions.append("\n\n").append(buildCharacterLimitPrompt(responseContext));
+        }
+
+        // Add context hint if provided (e.g., IM vs chat room context)
+        if (contextHint != null && !contextHint.trim().isEmpty()) {
+            instructions.append("\n\n").append(contextHint);
+        }
+
+        return instructions.toString();
     }
 
     /**

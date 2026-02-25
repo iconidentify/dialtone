@@ -52,9 +52,7 @@ data:
     grok.retry.delay.seconds={{ .Values.config.grokRetryDelaySeconds }}
     grok.daily.quota={{ .Values.config.grokDailyQuota }}
     grok.search.enabled={{ .Values.config.grokSearchEnabled }}
-    grok.search.mode={{ .Values.config.grokSearchMode }}
     grok.search.sources={{ .Values.config.grokSearchSources }}
-    grok.search.max_results={{ .Values.config.grokSearchMaxResults }}
     grok.story.summary.sentences={{ .Values.config.grokStorySummarySentences }}
     grok.story.headline.words.min={{ .Values.config.grokStoryHeadlineWordsMin }}
     grok.story.headline.words.max={{ .Values.config.grokStoryHeadlineWordsMax }}
