@@ -4,7 +4,7 @@
 
 image:
   repository: ghcr.io/iconidentify/dialtone
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: "latest"
 
 imagePullSecrets:

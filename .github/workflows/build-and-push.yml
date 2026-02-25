@@ -156,11 +156,19 @@ jobs:
       packages: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Extract short SHA
         id: meta
         run: |
           SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
           echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
 
       - name: Install kubectl
         run: |
@@ -178,20 +186,22 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
-      - name: Deploy to Kubernetes
+      - name: Deploy to Kubernetes via Helm
         run: |
-          IMAGE_TAG="${{ steps.meta.outputs.sha_short }}"
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${IMAGE_TAG}"
-          echo "Deploying image: ${IMAGE}"
-          kubectl set image deployment/dialtone dialtone="${IMAGE}" -n dialtone
+          IMAGE_TAG="sha-${{ steps.meta.outputs.sha_short }}"
+          echo "Deploying image tag: ${IMAGE_TAG}"
+
+          helm upgrade --install dialtone ./deploy/helm/dialtone \
+            --namespace dialtone \
+            -f deploy/helm/values-production.yaml \
+            --set image.tag="${IMAGE_TAG}" \
+            --wait \
+            --timeout 5m
 
       - name: Verify deployment
         run: |
           EXPECTED_TAG="${{ steps.meta.outputs.sha_short }}"
           echo "Expected image tag: sha-${EXPECTED_TAG}"
-
-          echo "Waiting for rollout..."
-          kubectl rollout status deployment/dialtone -n dialtone --timeout=120s
 
           ACTUAL=$(kubectl get deployment dialtone -n dialtone \
             -o jsonpath='{.spec.template.spec.containers[0].image}')
