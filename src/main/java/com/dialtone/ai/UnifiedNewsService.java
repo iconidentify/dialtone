@@ -80,7 +80,7 @@ public class UnifiedNewsService implements AutoCloseable {
         this.retryDelaySeconds = Integer.parseInt(properties.getProperty("grok.retry.delay.seconds", "10"));
 
         // Initialize unified persistence
-        String baseDir = properties.getProperty("news.base.persist.dir", "src/main/resources/news");
+        String baseDir = properties.getProperty("news.base.persist.dir", "storage/news");
         this.persistence = new UnifiedNewsPersistence(baseDir);
 
         // Initialize data structures
@@ -125,7 +125,7 @@ public class UnifiedNewsService implements AutoCloseable {
         int headlineMin = Integer.parseInt(properties.getProperty("grok.story.headline.words.min", "12"));
         int headlineMax = Integer.parseInt(properties.getProperty("grok.story.headline.words.max", "18"));
 
-        String baseDir = properties.getProperty("news.base.persist.dir", "src/main/resources/news");
+        String baseDir = properties.getProperty("news.base.persist.dir", "storage/news");
 
         for (NewsCategory category : NewsCategory.values()) {
             String key = category.getKey();

@@ -78,7 +78,7 @@ grok.story.headline.words.min=12
 grok.story.headline.words.max=18
 
 # Unified News Service Configuration
-news.base.persist.dir=src/main/resources/news
+news.base.persist.dir=storage/news
 news.default.refresh.interval.minutes=1440
 news.default.daily.quota=10
 news.default.keep.count=10

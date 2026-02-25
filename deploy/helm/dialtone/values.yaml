@@ -132,7 +132,7 @@ config:
   formatterMaxMessages: "10"
 
   # News
-  newsBasePersistDir: "src/main/resources/news"
+  newsBasePersistDir: "storage/news"
   newsDefaultRefreshIntervalMinutes: "1440"
   newsDefaultDailyQuota: "10"
   newsDefaultKeepCount: "10"
