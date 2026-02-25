@@ -21,4 +21,4 @@ services:
       # Database location
       - DB_PATH=/app/db/dialtone.db
       # Memory settings
-      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx1024m
+      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx256m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication

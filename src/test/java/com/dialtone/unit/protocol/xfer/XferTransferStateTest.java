@@ -29,18 +29,18 @@ class XferTransferStateTest {
     void shouldTrackAllConstructorParameters() {
         String transferId = "xfer_test_123";
         String filename = "test.txt";
-        byte[] fileData = "hello".getBytes();
+        int fileSize = 5;
         byte[] fileId = {0x01, 0x02, 0x03};
         byte[] encodedData = {0x68, 0x65, 0x6C, 0x6C, 0x6F};
         int timestamp = 1700000000;
         String username = "TestUser";
 
         XferTransferState state = new XferTransferState(
-            transferId, filename, fileData, fileId, encodedData, timestamp, username);
+            transferId, filename, fileSize, fileId, encodedData, timestamp, username);
 
         assertEquals(transferId, state.getTransferId());
         assertEquals(filename, state.getFilename());
-        assertArrayEquals(fileData, state.getFileData());
+        assertEquals(fileSize, state.getFileSize());
         assertArrayEquals(fileId, state.getFileId());
         assertArrayEquals(encodedData, state.getEncodedData());
         assertEquals(timestamp, state.getTimestamp());
@@ -69,18 +69,17 @@ class XferTransferStateTest {
     }
 
     @Test
-    void shouldReturnFileSizeFromFileData() {
-        byte[] fileData = "test content".getBytes();
+    void shouldReturnFileSize() {
         XferTransferState state = new XferTransferState(
-            "id", "file.txt", fileData, new byte[3], new byte[0], 0, "user");
+            "id", "file.txt", 12, new byte[3], new byte[0], 0, "user");
 
-        assertEquals(fileData.length, state.getFileSize());
+        assertEquals(12, state.getFileSize());
     }
 
     @Test
-    void shouldReturnZeroForNullFileData() {
+    void shouldReturnZeroForZeroFileSize() {
         XferTransferState state = new XferTransferState(
-            "id", "file.txt", null, new byte[3], new byte[0], 0, "user");
+            "id", "file.txt", 0, new byte[3], new byte[0], 0, "user");
 
         assertEquals(0, state.getFileSize());
     }
@@ -109,7 +108,7 @@ class XferTransferStateTest {
     @Test
     void shouldProduceReadableToString() {
         XferTransferState state = new XferTransferState(
-            "xfer_test_123", "test.txt", "hello".getBytes(),
+            "xfer_test_123", "test.txt", 5,
             new byte[3], new byte[0], 0, "TestUser");
 
         String str = state.toString();
@@ -123,7 +122,7 @@ class XferTransferStateTest {
         return new XferTransferState(
             "xfer_test_" + System.currentTimeMillis(),
             "tiny.txt",
-            "tiny\n".getBytes(),
+            5,
             new byte[]{0x01, 0x02, 0x03},
             new byte[]{0x74, 0x69, 0x6E, 0x79, 0x0A},
             (int) (System.currentTimeMillis() / 1000),

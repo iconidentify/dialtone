@@ -6,9 +6,9 @@ package com.dialtone.web.services;
 
 import com.dialtone.db.DatabaseManager;
 import com.dialtone.db.models.User;
+import com.dialtone.utils.JacksonConfig;
 import com.dialtone.utils.LoggerUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,7 +30,6 @@ import java.util.Properties;
 public class AdminAuditService {
 
     private final DatabaseManager databaseManager;
-    private final ObjectMapper objectMapper;
     private final int retentionDays;
     private final int maxEntries;
 
@@ -57,7 +56,6 @@ public class AdminAuditService {
      */
     public AdminAuditService(Properties config, DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
-        this.objectMapper = new ObjectMapper();
 
         // Load configuration
         this.retentionDays = Integer.parseInt(config.getProperty("admin.audit.log.retention.days", "365"));
@@ -83,7 +81,7 @@ public class AdminAuditService {
         try {
             String detailsJson = null;
             if (details != null && !details.isEmpty()) {
-                detailsJson = objectMapper.writeValueAsString(details);
+                detailsJson = JacksonConfig.mapper().writeValueAsString(details);
             }
 
             insertAuditEntry(admin.id(), action, targetUserId, targetScreennameId,

@@ -39,7 +39,7 @@ public class XferTransferState {
 
     private final String transferId;
     private final String filename;
-    private final byte[] fileData;
+    private final int fileSize;
     private final byte[] fileId;
     private final byte[] encodedData;
     private final int timestamp;
@@ -53,18 +53,18 @@ public class XferTransferState {
      *
      * @param transferId unique identifier for this transfer
      * @param filename short filename
-     * @param fileData raw file data
+     * @param fileSize raw file size in bytes
      * @param fileId 3-byte file ID for tj/tf correlation
      * @param encodedData pre-encoded data (escape encoded)
      * @param timestamp Unix timestamp for file metadata
      * @param username display name for logging
      */
-    public XferTransferState(String transferId, String filename, byte[] fileData,
+    public XferTransferState(String transferId, String filename, int fileSize,
                              byte[] fileId, byte[] encodedData, int timestamp,
                              String username) {
         this.transferId = transferId;
         this.filename = filename;
-        this.fileData = fileData;
+        this.fileSize = fileSize;
         this.fileId = fileId;
         this.encodedData = encodedData;
         this.timestamp = timestamp;
@@ -81,10 +81,6 @@ public class XferTransferState {
 
     public String getFilename() {
         return filename;
-    }
-
-    public byte[] getFileData() {
-        return fileData;
     }
 
     public byte[] getFileId() {
@@ -151,10 +147,10 @@ public class XferTransferState {
     /**
      * Get raw file size in bytes.
      *
-     * @return file size, or 0 if fileData is null
+     * @return file size
      */
     public int getFileSize() {
-        return fileData != null ? fileData.length : 0;
+        return fileSize;
     }
 
     @Override

@@ -4,6 +4,7 @@
 
 package com.dialtone.unit.protocol;
 
+import com.dialtone.art.ArtService;
 import com.dialtone.fdo.FdoChunk;
 import com.dialtone.fdo.FdoCompiler;
 import com.dialtone.fdo.FdoTemplateEngine;
@@ -42,7 +43,7 @@ public class F1TokenHandlerTest {
         props.setProperty("atomforge.base.url", "mock://test");
         mockFdoCompiler = new FdoCompiler(props);
 
-        dodRequestHandler = new DodRequestHandler(mockFdoCompiler, props);
+        dodRequestHandler = new DodRequestHandler(mockFdoCompiler, new ArtService(), props);
         mockCtx = mock(ChannelHandlerContext.class);
     }
 

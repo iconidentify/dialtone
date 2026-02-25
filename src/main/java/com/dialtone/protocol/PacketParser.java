@@ -32,6 +32,7 @@ import com.dialtone.aol.core.ProtocolConstants;
  */
 public final class PacketParser {
 
+    private static final int MAX_LOGGED_IDS = 1000;
     private static final Set<Integer> loggedUnknownIds = new HashSet<>();
 
     public static final class ParsedAtom {
@@ -115,7 +116,7 @@ public final class PacketParser {
             int id = (proto << 8) | atom;
             boolean isAtFamily = (token == 0x4154 || token == 0x4174 || token == 0x6154); // AT, At, aT
             if (isAtFamily && !isKnownAtom(proto, atom)) {
-                if (loggedUnknownIds.add(id)) {
+                if (loggedUnknownIds.size() < MAX_LOGGED_IDS && loggedUnknownIds.add(id)) {
                     if (LoggerUtil.isDebugEnabled()) {
                         final int capPos = pos;
                         final int capEnd = end;

@@ -11,6 +11,7 @@ import com.skalholt.events.DrawMapEvent;
 import com.skalholt.events.KillNpcEvent;
 import com.skalholt.events.NpcDamageTakenEvent;
 import com.skalholt.events.PlayerUpdateHealthEvent;
+import com.dialtone.utils.JacksonConfig;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -37,7 +38,7 @@ import java.util.Optional;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SkalholtSseEvent {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JacksonConfig.mapper();
 
     @JsonProperty("uuid")
     private String uuid;

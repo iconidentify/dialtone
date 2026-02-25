@@ -100,6 +100,8 @@ public class ConversationMemoryManager implements AutoCloseable {
         }
     }
 
+    private static final int MAX_CONVERSATIONS = 500;
+
     private final Map<String, ConversationHistory> conversations;
     private final int maxTurns;
     private final int inactiveTimeoutMinutes;
@@ -154,6 +156,8 @@ public class ConversationMemoryManager implements AutoCloseable {
             message = "";
         }
 
+        evictIfAtCapacity(username.toLowerCase());
+
         ConversationHistory history = conversations.computeIfAbsent(
                 username.toLowerCase(),
                 k -> new ConversationHistory(maxTurns)
@@ -177,6 +181,8 @@ public class ConversationMemoryManager implements AutoCloseable {
         if (message == null) {
             message = "";
         }
+
+        evictIfAtCapacity(username.toLowerCase());
 
         ConversationHistory history = conversations.computeIfAbsent(
                 username.toLowerCase(),
@@ -240,6 +246,29 @@ public class ConversationMemoryManager implements AutoCloseable {
      */
     public int getActiveConversationCount() {
         return conversations.size();
+    }
+
+    /**
+     * Evict the oldest conversation if at capacity and the user isn't already present.
+     */
+    private void evictIfAtCapacity(String userKey) {
+        if (conversations.containsKey(userKey) || conversations.size() < MAX_CONVERSATIONS) {
+            return;
+        }
+        // Find and evict the entry with the oldest lastAccessTime
+        String oldestKey = null;
+        long oldestTime = Long.MAX_VALUE;
+        for (Map.Entry<String, ConversationHistory> entry : conversations.entrySet()) {
+            long accessTime = entry.getValue().getLastAccessTime();
+            if (accessTime < oldestTime) {
+                oldestTime = accessTime;
+                oldestKey = entry.getKey();
+            }
+        }
+        if (oldestKey != null) {
+            conversations.remove(oldestKey);
+            LoggerUtil.info("Evicted oldest conversation for " + oldestKey + " (at capacity " + MAX_CONVERSATIONS + ")");
+        }
     }
 
     /**

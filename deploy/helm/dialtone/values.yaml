@@ -49,10 +49,10 @@ persistence:
 resources:
   requests:
     cpu: 200m
-    memory: 512Mi
+    memory: 256Mi
   limits:
     cpu: "1"
-    memory: 2Gi
+    memory: 512Mi
 
 config:
   # Server
@@ -156,12 +156,12 @@ config:
   emailRateLimitPerHour: "3"
 
   # File Transfer
-  transferMaxFileSizeMb: "100"
+  transferMaxFileSizeMb: "10"
 
   # Storage
   storageType: "local"
   storageLocalBaseDir: "storage"
-  storageLocalMaxFileSizeMb: "100"
+  storageLocalMaxFileSizeMb: "10"
 
   # Button Theming
   buttonColorFace: "252, 157, 44"

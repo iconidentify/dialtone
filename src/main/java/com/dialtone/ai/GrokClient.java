@@ -4,8 +4,8 @@
 
 package com.dialtone.ai;
 
+import com.dialtone.utils.JacksonConfig;
 import com.dialtone.utils.LoggerUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -38,7 +38,6 @@ public class GrokClient implements AutoCloseable {
     private final String model;
     private final int timeoutMs;
     private final CloseableHttpClient httpClient;
-    private final ObjectMapper objectMapper;
 
     // Global kill switch
     private final boolean enabled;
@@ -53,7 +52,6 @@ public class GrokClient implements AutoCloseable {
         this.model = properties.getProperty("grok.model", DEFAULT_MODEL);
         this.timeoutMs = Integer.parseInt(properties.getProperty("grok.timeout.ms", String.valueOf(DEFAULT_TIMEOUT_MS)));
         this.httpClient = HttpClients.createDefault();
-        this.objectMapper = new ObjectMapper();
 
         // Global kill switch (default: true/enabled for backwards compatibility)
         this.enabled = Boolean.parseBoolean(properties.getProperty("grok.enabled", "true"));
@@ -78,7 +76,6 @@ public class GrokClient implements AutoCloseable {
         this.model = model;
         this.timeoutMs = timeoutMs;
         this.httpClient = HttpClients.createDefault();
-        this.objectMapper = new ObjectMapper();
 
         // Default: enabled (for test constructor)
         this.enabled = true;
@@ -120,7 +117,7 @@ public class GrokClient implements AutoCloseable {
             post.setHeader("Authorization", "Bearer " + apiKey);
 
             // Serialize request to JSON
-            String requestJson = objectMapper.writeValueAsString(request);
+            String requestJson = JacksonConfig.mapper().writeValueAsString(request);
             LoggerUtil.debug(() -> "Grok API request: " + requestJson);
 
             post.setEntity(new StringEntity(requestJson, ContentType.APPLICATION_JSON));
@@ -137,7 +134,7 @@ public class GrokClient implements AutoCloseable {
                 LoggerUtil.debug(() -> "Grok API response: " + responseBody);
 
                 try {
-                    return objectMapper.readValue(responseBody, GrokChatResponse.class);
+                    return JacksonConfig.mapper().readValue(responseBody, GrokChatResponse.class);
                 } catch (Exception e) {
                     throw new IOException("Failed to parse Grok API response: " + e.getMessage(), e);
                 }

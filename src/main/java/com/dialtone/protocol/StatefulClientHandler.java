@@ -5,6 +5,7 @@
 package com.dialtone.protocol;
 
 import com.dialtone.ai.UnifiedNewsService;
+import com.dialtone.art.ArtService;
 import com.dialtone.aol.core.FrameCodec;
 import com.dialtone.aol.core.Hex;
 import com.dialtone.aol.core.ProtocolConstants;
@@ -195,7 +196,7 @@ public class StatefulClientHandler extends ChannelInboundHandlerAdapter {
         this.preferencesService = new ScreennamePreferencesService(dbManager);
 
         this.fdoProcessor = new FdoProcessor(fdoCompiler, pacer, MAX_BURST_FRAMES);
-        this.dodRequestHandler = new DodRequestHandler(fdoCompiler, this.properties, preferencesService);
+        this.dodRequestHandler = new DodRequestHandler(fdoCompiler, new ArtService(), this.properties, preferencesService);
 
         this.unifiedNewsService = unifiedNewsService;
         this.userRegistry = userRegistry;

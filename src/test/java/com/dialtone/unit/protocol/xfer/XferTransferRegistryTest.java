@@ -175,7 +175,7 @@ class XferTransferRegistryTest {
         return new XferTransferState(
             "xfer_test_" + System.nanoTime(),
             "tiny.txt",
-            "tiny\n".getBytes(),
+            5,
             new byte[]{0x01, 0x02, 0x03},
             new byte[]{0x74, 0x69, 0x6E, 0x79, 0x0A},
             (int) (System.currentTimeMillis() / 1000),

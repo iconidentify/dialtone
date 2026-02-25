@@ -40,7 +40,7 @@ public class DatabaseManager {
         // SQLite-specific optimizations
         config.addDataSourceProperty("journal_mode", "WAL"); // Write-Ahead Logging for better concurrency
         config.addDataSourceProperty("synchronous", "NORMAL"); // Good balance of safety vs performance
-        config.addDataSourceProperty("cache_size", "10000"); // 10MB cache
+        config.addDataSourceProperty("cache_size", "2000"); // 2MB cache
         config.addDataSourceProperty("temp_store", "memory"); // Store temp tables in memory
 
         this.dataSource = new HikariDataSource(config);

@@ -4,6 +4,8 @@
 
 package com.dialtone.protocol;
 
+import com.dialtone.utils.LoggerUtil;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,6 +44,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MultiFrameStreamAccumulator {
 
+    private static final int MAX_PENDING_STREAMS = 16;
+    private static final int MAX_STREAM_BYTES = 65536;
+
     /**
      * Storage for frames grouped by Stream ID.
      * Each Stream ID maps to a list of frames in arrival order.
@@ -49,9 +54,15 @@ public class MultiFrameStreamAccumulator {
     private final Map<Integer, List<byte[]>> pendingStreams = new ConcurrentHashMap<>();
 
     /**
+     * Tracks accumulated byte count per stream for enforcing MAX_STREAM_BYTES.
+     */
+    private final Map<Integer, Integer> streamByteCounts = new ConcurrentHashMap<>();
+
+    /**
      * Accumulates a frame for the given Stream ID.
      *
      * <p>The frame is copied to prevent external modifications from affecting stored data.
+     * Rejects frames that would exceed per-stream byte limits or pending stream limits.
      *
      * @param streamId the Stream ID from the P3 frame header (bytes 10-11)
      * @param frame    the complete frame data
@@ -61,10 +72,26 @@ public class MultiFrameStreamAccumulator {
             throw new IllegalArgumentException("Cannot accumulate null or empty frame");
         }
 
+        // Reject new streams beyond limit
+        if (!pendingStreams.containsKey(streamId) && pendingStreams.size() >= MAX_PENDING_STREAMS) {
+            LoggerUtil.warn("MultiFrameStreamAccumulator: rejecting new stream " + streamId +
+                    " (at capacity " + MAX_PENDING_STREAMS + ")");
+            return;
+        }
+
+        // Reject frames that would exceed per-stream byte limit
+        int currentBytes = streamByteCounts.getOrDefault(streamId, 0);
+        if (currentBytes + frame.length > MAX_STREAM_BYTES) {
+            LoggerUtil.warn("MultiFrameStreamAccumulator: rejecting frame for stream " + streamId +
+                    " (would exceed " + MAX_STREAM_BYTES + " bytes)");
+            return;
+        }
+
         // Copy frame to prevent external modifications
         byte[] frameCopy = Arrays.copyOf(frame, frame.length);
 
         pendingStreams.computeIfAbsent(streamId, k -> new ArrayList<>()).add(frameCopy);
+        streamByteCounts.merge(streamId, frame.length, Integer::sum);
     }
 
     /**
@@ -97,6 +124,7 @@ public class MultiFrameStreamAccumulator {
      * @return list of accumulated frames, or null if no frames exist for this Stream ID
      */
     public List<byte[]> getAndClear(int streamId) {
+        streamByteCounts.remove(streamId);
         return pendingStreams.remove(streamId);
     }
 
@@ -107,6 +135,7 @@ public class MultiFrameStreamAccumulator {
      */
     public void clear(int streamId) {
         pendingStreams.remove(streamId);
+        streamByteCounts.remove(streamId);
     }
 
     /**
@@ -116,6 +145,7 @@ public class MultiFrameStreamAccumulator {
      */
     public void clearAll() {
         pendingStreams.clear();
+        streamByteCounts.clear();
     }
 
     /**

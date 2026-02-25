@@ -112,9 +112,9 @@ public class XferService {
             ? XferEncoder.encode(fileData)
             : new byte[0];
 
-        // Create transfer state
+        // Create transfer state (pass fileSize instead of fileData so raw data becomes GC-eligible)
         XferTransferState state = new XferTransferState(
-            transferId, filename, fileData, fileId, encodedData, timestamp, username);
+            transferId, filename, fileSize, fileId, encodedData, timestamp, username);
 
         try {
             // Phase 1: Send xfer atoms via FDO

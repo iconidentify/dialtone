@@ -5,14 +5,17 @@
 package com.dialtone.art;
 
 import com.dialtone.protocol.ClientPlatform;
+import com.dialtone.utils.JacksonConfig;
 import com.dialtone.utils.LoggerUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Service for loading and processing art assets.
@@ -51,10 +54,18 @@ public class ArtService {
         "/art/extracted/art_extracted/",   // Extracted ART files (3rd priority)
     };
 
-    private final ObjectMapper objectMapper;
+    private static final int ART_CACHE_MAX_SIZE = 100;
+
+    /** LRU cache: key = "artId:platform", value = processed bytes. */
+    private final Map<String, byte[]> artCache = Collections.synchronizedMap(
+            new LinkedHashMap<>(64, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, byte[]> eldest) {
+                    return size() > ART_CACHE_MAX_SIZE;
+                }
+            });
 
     public ArtService() {
-        this.objectMapper = new ObjectMapper();
     }
 
     /**
@@ -158,6 +169,14 @@ public class ArtService {
      * @throws IOException if asset loading or conversion fails
      */
     public byte[] getArtAsBytes(String matArtId, ClientPlatform platform) throws IOException {
+        // Check LRU cache first
+        String cacheKey = matArtId + ":" + platform;
+        byte[] cached = artCache.get(cacheKey);
+        if (cached != null) {
+            LoggerUtil.debug(String.format("Art cache hit: %s (%d bytes)", cacheKey, cached.length));
+            return cached;
+        }
+
         LoggerUtil.debug(String.format("Loading art asset: %s", matArtId));
 
         // Check if art exists, fall back to default if not
@@ -180,44 +199,70 @@ public class ArtService {
             }
         }
 
+        byte[] result;
+
         // Route based on whether JSON metadata exists
         if (!hasJson) {
             // GIF without JSON: pass through without processing
             if (".gif".equals(extension)) {
                 LoggerUtil.debug(String.format(
                         "No JSON metadata found for %s - using GIF pass-through mode", actualMatArtId));
-                return getArtAsBytesPassthrough(actualMatArtId, platform);
-            }
-
-            // BMP without JSON: pass through without processing
-            if (".bmp".equals(extension)) {
+                result = getArtAsBytesPassthrough(actualMatArtId, platform);
+            } else if (".bmp".equals(extension)) {
+                // BMP without JSON: pass through without processing
                 LoggerUtil.debug(String.format(
                         "No JSON metadata found for %s - using BMP pass-through mode", actualMatArtId));
-                return getArtAsBytesBmpPassthrough(actualMatArtId);
-            }
-
-            // ART without JSON: pass through without processing
-            if (".art".equals(extension)) {
+                result = getArtAsBytesBmpPassthrough(actualMatArtId);
+            } else if (".art".equals(extension)) {
+                // ART without JSON: pass through without processing
                 LoggerUtil.debug(String.format(
                         "No JSON metadata found for %s - using ART pass-through mode", actualMatArtId));
-                return getArtAsBytesArtPassthrough(actualMatArtId);
+                result = getArtAsBytesArtPassthrough(actualMatArtId);
+            } else {
+                // PNG/JPG/JPEG without JSON: use default processing (640x480 constraint)
+                LoggerUtil.debug(String.format(
+                        "No JSON metadata for %s - using default processing (max 640x480, dithering enabled)",
+                        actualMatArtId));
+
+                BufferedImage image = loadImage(actualMatArtId);
+                ArtMetadata metadata = createDefaultMetadata();
+
+                LoggerUtil.debug(() -> String.format(
+                        "Using default metadata: %s", metadata));
+
+                // Resize with aspect ratio preservation to 640x480 bounds
+                BufferedImage resized = GifEncoder.resize(image, metadata.getWidth(), metadata.getHeight());
+
+                // Quantize with dithering enabled
+                BufferedImage quantized = GifEncoder.quantizeTo256ColorsAdaptive(
+                    resized,
+                    metadata.isEnableDithering(),
+                    metadata.isEnablePosterization(),
+                    metadata.getPosterizationLevel()
+                );
+
+                // Encode to GIF87a with automatic size limiting (includes AOL protocol header)
+                result = GifEncoder.encodeWithSizeLimit(quantized, metadata);
+
+                LoggerUtil.debug(String.format(
+                        "Art asset converted to GIF87a with default settings: %s, %d bytes (with size limit enforcement)",
+                        actualMatArtId, result.length));
             }
-
-            // PNG/JPG/JPEG without JSON: use default processing (640x480 constraint)
-            LoggerUtil.debug(String.format(
-                    "No JSON metadata for %s - using default processing (max 640x480, dithering enabled)",
-                    actualMatArtId));
-
+        } else {
+            // Standard processing path: JSON metadata exists
+            // Load image (PNG, JPEG, or GIF)
             BufferedImage image = loadImage(actualMatArtId);
-            ArtMetadata metadata = createDefaultMetadata();
+
+            // Load JSON metadata
+            ArtMetadata metadata = loadMetadata(actualMatArtId);
 
             LoggerUtil.debug(() -> String.format(
-                    "Using default metadata: %s", metadata));
+                    "Art metadata loaded: %s", metadata));
 
-            // Resize with aspect ratio preservation to 640x480 bounds
+            // Resize image to target dimensions (do this BEFORE quantization for better palette generation)
             BufferedImage resized = GifEncoder.resize(image, metadata.getWidth(), metadata.getHeight());
 
-            // Quantize with dithering enabled
+            // Quantize to 256 colors using adaptive palette with optional dithering/posterization
             BufferedImage quantized = GifEncoder.quantizeTo256ColorsAdaptive(
                 resized,
                 metadata.isEnableDithering(),
@@ -225,45 +270,17 @@ public class ArtService {
                 metadata.getPosterizationLevel()
             );
 
-            // Encode to GIF87a with automatic size limiting (includes AOL protocol header)
-            byte[] gifBytes = GifEncoder.encodeWithSizeLimit(quantized, metadata);
+            // Encode to GIF87a with metadata (includes flag bytes) and automatic size limiting
+            result = GifEncoder.encodeWithSizeLimit(quantized, metadata);
 
             LoggerUtil.debug(String.format(
-                    "Art asset converted to GIF87a with default settings: %s, %d bytes (with size limit enforcement)",
-                    actualMatArtId, gifBytes.length));
-
-            return gifBytes;
+                    "Art asset converted to GIF87a: %s, %d bytes (with size limit enforcement)",
+                    actualMatArtId, result.length));
         }
 
-        // Standard processing path: JSON metadata exists
-        // Load image (PNG, JPEG, or GIF)
-        BufferedImage image = loadImage(actualMatArtId);
-
-        // Load JSON metadata
-        ArtMetadata metadata = loadMetadata(actualMatArtId);
-
-        LoggerUtil.debug(() -> String.format(
-                "Art metadata loaded: %s", metadata));
-
-        // Resize image to target dimensions (do this BEFORE quantization for better palette generation)
-        BufferedImage resized = GifEncoder.resize(image, metadata.getWidth(), metadata.getHeight());
-
-        // Quantize to 256 colors using adaptive palette with optional dithering/posterization
-        BufferedImage quantized = GifEncoder.quantizeTo256ColorsAdaptive(
-            resized,
-            metadata.isEnableDithering(),
-            metadata.isEnablePosterization(),
-            metadata.getPosterizationLevel()
-        );
-
-        // Encode to GIF87a with metadata (includes flag bytes) and automatic size limiting
-        byte[] gifBytes = GifEncoder.encodeWithSizeLimit(quantized, metadata);
-
-        LoggerUtil.debug(String.format(
-                "Art asset converted to GIF87a: %s, %d bytes (with size limit enforcement)",
-                actualMatArtId, gifBytes.length));
-
-        return gifBytes;
+        // Store in LRU cache
+        artCache.put(cacheKey, result);
+        return result;
     }
 
     /**
@@ -371,7 +388,7 @@ public class ArtService {
                 throw new IOException("JSON metadata file not found: " + jsonPath);
             }
 
-            ArtMetadata metadata = objectMapper.readValue(inputStream, ArtMetadata.class);
+            ArtMetadata metadata = JacksonConfig.mapper().readValue(inputStream, ArtMetadata.class);
 
             // Validate metadata
             if (metadata.getWidth() <= 0 || metadata.getHeight() <= 0) {

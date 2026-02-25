@@ -39,7 +39,7 @@ public class SkalholtEventStreamClient implements AutoCloseable {
     private final Consumer<Throwable> errorCallback;
     private final int timeoutMs;
 
-    private CloseableHttpClient httpClient;
+    private final CloseableHttpClient httpClient;
     private Thread readerThread;
     private final AtomicBoolean connected = new AtomicBoolean(false);
     private final AtomicBoolean shouldReconnect = new AtomicBoolean(true);
@@ -88,6 +88,15 @@ public class SkalholtEventStreamClient implements AutoCloseable {
         this.eventCallback = eventCallback;
         this.errorCallback = errorCallback;
         this.timeoutMs = timeoutMs;
+
+        // Create httpClient once with configured timeout (reused across reconnects)
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectionRequestTimeout(Timeout.ofMilliseconds(timeoutMs))
+                .setResponseTimeout(Timeout.DISABLED) // SSE streams indefinitely
+                .build();
+        this.httpClient = HttpClients.custom()
+                .setDefaultRequestConfig(requestConfig)
+                .build();
     }
 
     /**
@@ -143,15 +152,6 @@ public class SkalholtEventStreamClient implements AutoCloseable {
         String url = "http://" + host + ":" + port + EVENTS_PATH;
         LoggerUtil.info("[SkalholtEventStream] Connecting to " + url);
         LoggerUtil.info("[SkalholtEventStream] Using auth header: " + authToken.getBasicAuthHeader().substring(0, 15) + "...");
-
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectionRequestTimeout(Timeout.ofMilliseconds(timeoutMs))
-                .setResponseTimeout(Timeout.DISABLED) // SSE streams indefinitely
-                .build();
-
-        httpClient = HttpClients.custom()
-                .setDefaultRequestConfig(requestConfig)
-                .build();
 
         HttpGet request = new HttpGet(url);
         request.setHeader("Authorization", authToken.getBasicAuthHeader());
@@ -279,13 +279,10 @@ public class SkalholtEventStreamClient implements AutoCloseable {
      * Closes the HTTP client.
      */
     private void closeHttpClient() {
-        if (httpClient != null) {
-            try {
-                httpClient.close();
-            } catch (IOException e) {
-                LoggerUtil.warn("[SkalholtEventStream] Error closing HTTP client: " + e.getMessage());
-            }
-            httpClient = null;
+        try {
+            httpClient.close();
+        } catch (IOException e) {
+            LoggerUtil.warn("[SkalholtEventStream] Error closing HTTP client: " + e.getMessage());
         }
     }
 

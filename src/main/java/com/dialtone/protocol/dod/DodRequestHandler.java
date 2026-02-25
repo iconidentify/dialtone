@@ -65,12 +65,8 @@ public class DodRequestHandler {
         F2_DIRECT
     }
 
-    public DodRequestHandler(FdoCompiler fdoCompiler, Properties properties) {
-        this(fdoCompiler, new ArtService(), properties, null);
-    }
-
-    public DodRequestHandler(FdoCompiler fdoCompiler, Properties properties, ScreennamePreferencesService preferencesService) {
-        this(fdoCompiler, new ArtService(), properties, preferencesService);
+    public DodRequestHandler(FdoCompiler fdoCompiler, ArtService artService, Properties properties) {
+        this(fdoCompiler, artService, properties, null);
     }
 
     public DodRequestHandler(FdoCompiler fdoCompiler, ArtService artService, Properties properties, ScreennamePreferencesService preferencesService) {

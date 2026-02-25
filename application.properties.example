@@ -127,12 +127,12 @@ email.base.url=http://localhost:5200
 email.rate.limit.per.hour=3
 
 # File Transfer Configuration
-transfer.max.file.size.mb=100
+transfer.max.file.size.mb=10
 
 # Storage Configuration
 storage.type=local
 storage.local.base.dir=storage
-storage.local.max.file.size.mb=100
+storage.local.max.file.size.mb=10
 
 # Button Theming (Dialtone Brand Colors)
 button.color.face=252, 157, 44

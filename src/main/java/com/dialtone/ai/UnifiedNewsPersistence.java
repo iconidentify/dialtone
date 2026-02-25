@@ -4,10 +4,9 @@
 
 package com.dialtone.ai;
 
+import com.dialtone.utils.JacksonConfig;
 import com.dialtone.utils.LoggerUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,9 +32,7 @@ public class UnifiedNewsPersistence {
 
     public UnifiedNewsPersistence(String baseDirectoryPath) {
         this.baseDirectory = Paths.get(baseDirectoryPath).toAbsolutePath().normalize();
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
-        this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        this.objectMapper = JacksonConfig.prettyMapper();
 
         LoggerUtil.info("Unified news persistence initialized:");
         LoggerUtil.info("  - Base directory: " + this.baseDirectory);
