@@ -33,7 +33,7 @@ spec:
           imagePullPolicy: {{ .Values.skalholt.image.pullPolicy }}
           env:
             - name: JAVA_OPTS
-              value: "-Xmx2g -Xms1g"
+              value: "-Xms128m -Xmx256m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
           ports:
             - name: telnet-color
               containerPort: 8161

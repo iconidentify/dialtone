@@ -205,10 +205,10 @@ skalholt:
   resources:
     requests:
       cpu: 200m
-      memory: 512Mi
+      memory: 256Mi
     limits:
       cpu: "1"
-      memory: 2Gi
+      memory: 512Mi
   persistence:
     size: 5Gi
     storageClassName: ""
