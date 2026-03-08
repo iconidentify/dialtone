@@ -1,0 +1,12 @@
+# TCP proxy configmap for ingress-nginx controller.
+# Routes external port 5190 on the ingress LoadBalancer IP to the
+# AOL ClusterIP service inside the dialtone namespace.
+#
+# Apply with: kubectl apply -f deploy/ingress-nginx-tcp-services.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcp-services
+  namespace: ingress-nginx
+data:
+  "5190": "dialtone/dialtone-aol:5191"
