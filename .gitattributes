@@ -1,0 +1,5 @@
+# CCL files must keep CRLF line endings for AOL 3.0 Windows compatibility
+*.CCL binary
+
+# Mac CCL file uses classic Mac CR-only line endings
+src/main/resources/static/public/downloads/TCP binary
