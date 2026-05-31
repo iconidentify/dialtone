@@ -26,23 +26,28 @@ public class XApi20 extends DefaultApi20 {
     /**
      * X OAuth 2.0 authorization endpoint.
      * This is where users are redirected to authorize the application.
+     *
+     * Must be on x.com: X migrated the consumer experience off twitter.com,
+     * and a logged-in user's session cookie lives on x.com. Serving the
+     * authorize page from twitter.com leaves it unable to see that session,
+     * trapping the user in a "you need to be logged into X" loop.
      */
     private static final String AUTHORIZATION_URL =
-        "https://twitter.com/i/oauth2/authorize";
+        "https://x.com/i/oauth2/authorize";
 
     /**
      * X OAuth 2.0 token endpoint.
      * Used to exchange authorization code for access tokens.
      */
     private static final String ACCESS_TOKEN_ENDPOINT =
-        "https://api.twitter.com/2/oauth2/token";
+        "https://api.x.com/2/oauth2/token";
 
     /**
      * X API v2 user info endpoint.
      * Used to get authenticated user profile information.
      */
     public static final String USER_INFO_ENDPOINT =
-        "https://api.twitter.com/2/users/me";
+        "https://api.x.com/2/users/me";
 
     /**
      * Private constructor to prevent direct instantiation.
