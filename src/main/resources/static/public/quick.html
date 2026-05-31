@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Dialtone - AOL 3.0, right in your browser</title>
+<meta name="description" content="A real Mac running AOL 3.0, booted live in your browser. Sign in to claim a screen name and hop on." />
+<meta name="theme-color" content="#001e37" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>
+  /*
+   * Dialtone "quick" landing.
+   * The Mac OS 7 / AOL 3.0 emulator (mac.dialtone.live) auto-boots and fills the
+   * screen - the computer IS the page. A small, tasteful login pill floats on top;
+   * it expands into a compact card only when there's something to do (pick a screen
+   * name, send a file). Self-contained: no build step, talks to same-origin /api.
+   *
+   * NOTE: the emulator only embeds on a *.dialtone.live origin (mac.dialtone.live
+   * sends Cross-Origin-Resource-Policy: same-site). On other origins the boot
+   * overlay falls back to an "open in a new tab" prompt.
+   */
+  :root {
+    --navy-900: #00131f;
+    --navy-800: #001e37;
+    --orange: #fc9d2c;
+    --orange-lt: #ffc864;
+    --orange-dk: #965a14;
+    --ink: #001e37;
+    --paper: #eaf2f8;
+    --muted: #9db4c7;
+    --danger: #ff6b6b;
+    --ok: #45d483;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: var(--navy-900); color: var(--paper);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; overflow: hidden;
+  }
+
+  /* ---- Full-screen emulator stage ---- */
+  #stage { position: fixed; inset: 0; overflow: hidden;
+    background:
+      radial-gradient(1200px 800px at 70% -10%, #073a63 0%, transparent 60%),
+      radial-gradient(900px 700px at 10% 110%, #04243d 0%, transparent 55%),
+      linear-gradient(160deg, #00131f 0%, #001e37 60%, #00131f 100%);
+  }
+  #emu { position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+    opacity: 0; transition: opacity 1s var(--ease), filter 0.5s var(--ease); }
+  #emu.loaded { opacity: 1; }
+  /* Dim the Mac a touch while a card is open so the card reads clearly */
+  body[data-card="on"] #emu.loaded { filter: brightness(0.5) saturate(0.9); }
+
+  /* Boot overlay (until the iframe loads) */
+  #boot { position: absolute; inset: 0; z-index: 5; display: flex;
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    transition: opacity 0.6s var(--ease); }
+  #boot.gone { opacity: 0; pointer-events: none; }
+  .boot-orb { width: min(40vmin, 280px); height: min(40vmin, 280px); border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--orange-lt), var(--orange) 45%, var(--orange-dk) 100%);
+    filter: blur(2px); box-shadow: 0 0 120px 20px rgba(252,157,44,0.3);
+    animation: float 7s ease-in-out infinite; opacity: 0.5; }
+  @keyframes float { 0%,100% { transform: translateY(-12px) scale(1); } 50% { transform: translateY(12px) scale(1.04); } }
+  .boot-text { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  /* Embed-failed fallback (non-dialtone.live origin) */
+  #embedfail { position: absolute; inset: 0; z-index: 6; display: none;
+    align-items: center; justify-content: center; padding: 22px; }
+  #embedfail.show { display: flex; }
+  .ef-card { max-width: 360px; text-align: center;
+    background: linear-gradient(165deg, rgba(10,38,62,0.92), rgba(0,18,33,0.96));
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 26px 24px;
+    box-shadow: 0 24px 60px -12px rgba(0,0,0,0.7); }
+  .ef-title { font-weight: 800; font-size: 19px; margin-bottom: 8px; }
+  .ef-sub { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 18px; }
+
+  /* Vignette so floating UI always reads */
+  #stage::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 38%, transparent 50%, rgba(0,8,16,0.45) 100%); }
+
+  /* ---- Brand (top-left) ---- */
+  #brand { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 18px;
+    display: flex; align-items: center; gap: 10px; z-index: 30; text-decoration: none; color: var(--paper); user-select: none; }
+  #brand img { width: 26px; height: 26px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+  #brand .name { font-weight: 800; font-size: 17px; }
+  #brand .dot { color: var(--orange); }
+  @media (max-width: 520px) { #brand .name { font-size: 16px; } }
+
+  /* ---- Floating login pill / status indicator (top-right) ---- */
+  #launcher { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 16px; z-index: 45; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 9px;
+    border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 14px;
+    padding: 11px 16px; border-radius: 999px; color: var(--ink);
+    background: linear-gradient(180deg, var(--orange-lt), var(--orange) 55%, var(--orange-dk));
+    box-shadow: 0 10px 26px -8px rgba(252,157,44,0.6), 0 0 0 1px rgba(255,200,100,0.5) inset;
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    transition: transform 0.12s var(--ease), box-shadow 0.2s var(--ease);
+  }
+  .pill:hover { transform: translateY(-1px); box-shadow: 0 14px 34px -8px rgba(252,157,44,0.75), 0 0 0 1px rgba(255,200,100,0.6) inset; }
+  .pill:active { transform: translateY(0) scale(0.98); }
+  .pill svg { width: 17px; height: 17px; }
+  /* signed-in variant: dark glass chip */
+  .pill.user {
+    background: linear-gradient(165deg, rgba(10,38,62,0.9), rgba(0,18,33,0.94));
+    color: var(--paper); box-shadow: 0 12px 30px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1) inset;
+  }
+  .pill .av { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto;
+    background: linear-gradient(180deg, var(--orange-lt), var(--orange-dk)); color: var(--ink);
+    font-weight: 800; font-size: 12px; display: grid; place-items: center; }
+  .pill .chev { width: 14px; height: 14px; opacity: 0.7; transition: transform 0.2s var(--ease); }
+  #launcher.open .pill .chev { transform: rotate(180deg); }
+  .pill .mini-spin { width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid rgba(0,30,55,0.3); border-top-color: var(--ink); animation: rot 0.8s linear infinite; }
+
+  /* dropdown menu under the user pill */
+  #menu { position: absolute; top: calc(100% + 8px); right: 0; min-width: 210px;
+    background: linear-gradient(165deg, rgba(10,38,62,0.95), rgba(0,18,33,0.97));
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 7px;
+    box-shadow: 0 22px 50px -12px rgba(0,0,0,0.7); display: none;
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); animation: pop 0.18s var(--ease) both; }
+  #launcher.open #menu { display: block; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .menu-head { padding: 9px 11px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px; }
+  .menu-head .who { font-size: 11px; color: var(--muted); }
+  .menu-head .sn { font-weight: 800; font-size: 15px; }
+  .menu-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    border: 0; background: none; color: var(--paper); font: inherit; font-size: 14px;
+    padding: 10px 11px; border-radius: 9px; cursor: pointer; }
+  .menu-item:hover { background: rgba(255,255,255,0.07); }
+  .menu-item svg { width: 16px; height: 16px; opacity: 0.85; flex: 0 0 auto; }
+  .menu-item.danger { color: #ffb4b4; }
+
+  /* ---- Compact card (forms: screen name / send file) ---- */
+  #panel { position: fixed; z-index: 44; right: 18px; bottom: max(18px, env(safe-area-inset-bottom));
+    width: 380px; max-width: calc(100vw - 32px); display: none; }
+  #panel.show { display: block; }
+  .card { position: relative; border-radius: 20px; padding: 24px 22px 20px;
+    max-height: min(82vh, 720px); overflow-y: auto;
+    background: linear-gradient(165deg, rgba(10,38,62,0.92), rgba(0,18,33,0.96));
+    border: 1px solid rgba(255,255,255,0.13);
+    box-shadow: 0 24px 60px -12px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.08) inset;
+    -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3);
+    animation: cardIn 0.45s var(--ease) both; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .card::before { content: ""; position: absolute; top: 0; left: 22px; right: 22px; height: 2px;
+    border-radius: 2px; background: linear-gradient(90deg, transparent, var(--orange), transparent); opacity: 0.8; }
+
+  .eyebrow { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--orange); margin: 0 0 8px; }
+  .headline { font-size: 23px; line-height: 1.13; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.3px; }
+  .headline.center { text-align: center; }
+  .sub { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin: 0 0 18px; }
+  .sub.center { text-align: center; }
+
+  .btn { width: 100%; border: 0; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: inherit; transition: transform 0.12s var(--ease), box-shadow 0.2s var(--ease), background 0.2s; }
+  .btn:active { transform: translateY(1px) scale(0.995); }
+  .btn svg { width: 18px; height: 18px; }
+  .btn-x { background: #fff; color: #0b0b0b; box-shadow: 0 8px 24px -8px rgba(255,255,255,0.4); }
+  .btn-x:hover { transform: translateY(-1px); }
+  .btn-primary { background: linear-gradient(180deg, var(--orange-lt), var(--orange) 55%, var(--orange-dk));
+    color: var(--ink); box-shadow: 0 10px 26px -8px rgba(252,157,44,0.6), 0 0 0 1px rgba(255,200,100,0.5) inset; }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-ghost { background: rgba(255,255,255,0.06); color: var(--paper); border: 1px solid rgba(255,255,255,0.14); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  .field { margin-bottom: 13px; }
+  .field-row { display: flex; align-items: baseline; justify-content: space-between; }
+  .field label { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .hint { font-size: 10.5px; color: var(--muted); }
+  .hint.bad { color: var(--danger); } .hint.good { color: var(--ok); }
+  input.in { width: 100%; border-radius: 11px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.28);
+    color: var(--paper); padding: 12px 13px; font-size: 15px; font-family: inherit; transition: border-color 0.18s, box-shadow 0.18s; }
+  input.in::placeholder { color: #5f7a90; }
+  input.in:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(252,157,44,0.18); }
+
+  .err { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.35); color: #ffd0d0;
+    border-radius: 10px; padding: 9px 12px; font-size: 12.5px; margin-bottom: 14px; display: none; }
+  .err.show { display: block; animation: cardIn 0.3s var(--ease) both; }
+  .foot { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
+  .linklike { color: var(--muted); background: none; border: 0; cursor: pointer; font: inherit; font-size: 11.5px; padding: 0; }
+  .linklike:hover { color: var(--paper); }
+  .stack > * + * { margin-top: 10px; }
+  .spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.2);
+    border-top-color: var(--orange); animation: rot 0.8s linear infinite; margin: 6px auto 0; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  [hidden] { display: none !important; }
+
+  /* File send */
+  .send-head { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 4px; }
+  .send-head .eyebrow { margin-bottom: 4px; } .send-head .headline { margin: 0; }
+  .iconback { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14); color: var(--paper); font-size: 22px; line-height: 1; cursor: pointer;
+    display: grid; place-items: center; margin-top: 2px; }
+  .iconback:hover { background: rgba(255,255,255,0.1); }
+  .dropzone { border: 1.5px dashed rgba(255,255,255,0.22); border-radius: 14px; background: rgba(0,0,0,0.22);
+    padding: 22px 16px; text-align: center; cursor: pointer; margin-bottom: 14px;
+    transition: border-color 0.18s, background 0.18s, transform 0.12s var(--ease); }
+  .dropzone:hover, .dropzone:focus-visible { border-color: var(--orange); background: rgba(252,157,44,0.06); outline: none; }
+  .dropzone.drag { border-color: var(--orange); background: rgba(252,157,44,0.13); transform: scale(1.01); }
+  .dz-empty { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .dz-ico { width: 30px; height: 30px; color: var(--orange); }
+  .dz-text { font-weight: 700; font-size: 14.5px; } .dz-hint { font-size: 11px; color: var(--muted); }
+  .dz-file { display: flex; align-items: center; gap: 11px; text-align: left; }
+  .dz-file-ico { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 9px; background: rgba(252,157,44,0.16); color: var(--orange); display: grid; place-items: center; }
+  .dz-file-ico svg { width: 18px; height: 18px; }
+  .dz-file-meta { min-width: 0; flex: 1; }
+  .dz-file-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dz-file-size { font-size: 11.5px; color: var(--muted); }
+  .dz-file-x { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14); color: var(--paper); font-size: 18px; line-height: 1; cursor: pointer; }
+  .dz-file-x:hover { background: rgba(255,107,107,0.2); border-color: rgba(255,107,107,0.4); }
+  .recip-label { display: flex; align-items: center; justify-content: space-between; font-size: 11px;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+  .recip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .recip { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 11px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--paper);
+    font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .recip:hover { background: rgba(255,255,255,0.09); }
+  .recip.sel { border-color: var(--orange); background: rgba(252,157,44,0.14); }
+  .recip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px rgba(69,212,131,0.7); }
+  .recip .plat { font-size: 10px; color: var(--muted); font-weight: 500; }
+  .recip-empty { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+  .send-progress { margin-bottom: 14px; }
+  .sp-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .sp-bar { height: 7px; border-radius: 6px; background: rgba(255,255,255,0.1); overflow: hidden; }
+  .sp-fill { height: 100%; width: 0%; border-radius: 6px; background: linear-gradient(90deg, var(--orange), var(--orange-lt)); transition: width 0.2s ease; }
+  .sent-check { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 8px; display: grid; place-items: center;
+    background: radial-gradient(circle at 40% 35%, rgba(69,212,131,0.35), rgba(69,212,131,0.12));
+    border: 1px solid rgba(69,212,131,0.5); animation: cardIn 0.4s var(--ease) both; }
+  .sent-check svg { width: 26px; height: 26px; color: var(--ok); }
+
+  /* Mobile: card becomes a bottom sheet, menu spans nicely */
+  @media (max-width: 560px) {
+    #panel { left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%; }
+    .card { border-radius: 22px 22px 0 0; padding: 22px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 86vh; }
+    #launcher { right: 12px; }
+    #menu { min-width: 220px; }
+    .headline { font-size: 21px; }
+  }
+
+  /* tiny demo controls */
+  #demobar { position: fixed; bottom: 12px; left: 12px; z-index: 60; display: none; gap: 6px; flex-wrap: wrap; max-width: 70vw; }
+  #demobar.show { display: flex; }
+  #demobar button { font: 11px ui-monospace, monospace; color: var(--paper); background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 7px; padding: 5px 8px; cursor: pointer; }
+  #demobar button:hover { border-color: var(--orange); }
+</style>
+</head>
+<body>
+
+  <!-- Full-screen emulator: auto-boots on load -->
+  <div id="stage">
+    <iframe id="emu" title="Mac System 7 running AOL 3.0"
+      allow="cross-origin-isolated; autoplay; clipboard-read; clipboard-write"
+      referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div id="boot">
+      <div class="boot-orb"></div>
+      <div class="boot-text">Booting Mac OS&hellip;</div>
+    </div>
+    <div id="embedfail">
+      <div class="ef-card">
+        <div class="ef-title">Open the Mac in a new tab</div>
+        <div class="ef-sub">This browser blocked the embedded emulator here. You can still boot the full Mac in a new tab - your screen name works there too.</div>
+        <a class="btn btn-primary" href="https://mac.dialtone.live" target="_blank" rel="noopener">Open the Mac &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brand -->
+  <a id="brand" href="/" title="Dialtone">
+    <img src="/favicon.svg" alt="" />
+    <span class="name">Dialtone<span class="dot">.</span></span>
+  </a>
+
+  <!-- Floating login pill / status indicator -->
+  <div id="launcher"><!-- filled by JS --></div>
+
+  <!-- Demo controls (?demo=1 / file://) -->
+  <div id="demobar">
+    <button data-demo="signedout">signed out</button>
+    <button data-demo="needsn">need s/n</button>
+    <button data-demo="ready">ready</button>
+    <button data-demo="menu">menu</button>
+    <button data-demo="send">send</button>
+    <button data-demo="sent">sent</button>
+  </div>
+
+  <!-- Compact card (forms only) -->
+  <div id="panel">
+    <div class="card" id="card">
+
+      <!-- needs screen name -->
+      <div id="s-needsn" hidden>
+        <p class="eyebrow" id="hi-user">Signed in</p>
+        <h1 class="headline">Pick your<br/>screen name</h1>
+        <p class="sub">This is how you'll show up on Dialtone and inside AOL. Make it count.</p>
+        <div class="err" id="err-needsn"></div>
+        <form id="sn-form" autocomplete="off">
+          <div class="field">
+            <div class="field-row"><label for="sn">Screen name</label><span class="hint" id="sn-hint">1&ndash;10 letters &amp; numbers</span></div>
+            <input class="in" id="sn" name="sn" type="text" maxlength="10" placeholder="e.g. SkyRunner98" autocapitalize="off" spellcheck="false" />
+          </div>
+          <div class="field">
+            <div class="field-row"><label for="pw">Password</label><span class="hint" id="pw-hint">1&ndash;8 characters</span></div>
+            <input class="in" id="pw" name="pw" type="password" maxlength="8" placeholder="Choose a password" />
+          </div>
+          <button class="btn btn-primary" id="btn-create" type="submit" disabled>Claim it</button>
+        </form>
+        <div class="foot"><span></span><button class="linklike" id="signout-1">Sign out</button></div>
+      </div>
+
+      <!-- send a file -->
+      <div id="s-send" hidden>
+        <div class="send-head">
+          <button class="iconback" id="send-back" type="button" aria-label="Back">&lsaquo;</button>
+          <div><p class="eyebrow">File transfer</p><h1 class="headline">Send a file</h1></div>
+        </div>
+        <p class="sub">Drop a file and pick which screen name receives it on AOL.</p>
+        <div class="err" id="err-send"></div>
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose a file">
+          <input id="file-input" type="file" hidden />
+          <div id="dz-empty" class="dz-empty">
+            <svg class="dz-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div class="dz-text">Drop a file or tap to browse</div>
+            <div class="dz-hint" id="dz-hint">Max 10 MB</div>
+          </div>
+          <div id="dz-file" class="dz-file" hidden>
+            <div class="dz-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="dz-file-meta"><div class="dz-file-name" id="dz-file-name"></div><div class="dz-file-size" id="dz-file-size"></div></div>
+            <button class="dz-file-x" id="dz-file-x" type="button" aria-label="Remove file">&times;</button>
+          </div>
+        </div>
+        <div id="recip-wrap" hidden>
+          <div class="recip-label"><span>Send to</span><button class="linklike" id="recip-refresh" type="button">Refresh</button></div>
+          <div id="recip-list" class="recip-list"></div>
+          <div id="recip-empty" class="recip-empty" hidden>No screen names are online yet. Boot the Mac and sign on to AOL (or connect any AOL client), then tap Refresh.</div>
+        </div>
+        <div id="send-progress" class="send-progress" hidden>
+          <div class="sp-row"><span id="sp-label">Uploading&hellip;</span><span id="sp-pct">0%</span></div>
+          <div class="sp-bar"><div class="sp-fill" id="sp-fill"></div></div>
+        </div>
+        <button class="btn btn-primary" id="btn-send" type="button" disabled>Send file</button>
+      </div>
+
+      <!-- file sent -->
+      <div id="s-sent" hidden>
+        <div class="sent-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <h1 class="headline center">On its way</h1>
+        <p class="sub center" id="sent-detail"></p>
+        <div class="stack">
+          <button class="btn btn-primary" id="btn-send-another" type="button">Send another</button>
+          <button class="btn btn-ghost" id="btn-done" type="button">Done</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var COOKIE = "dialtone_auth_token";
+  var MAC_URL = "https://mac.dialtone.live";
+  var SN_RE = /^[A-Za-z0-9]{1,10}$/;
+  var PW_MIN = 1, PW_MAX = 8;
+  var isDemo = location.protocol === "file:" || /[?&]demo=1/.test(location.search);
+
+  function $(id) { return document.getElementById(id); }
+  function getCookie(name) {
+    var m = document.cookie.split("; ").find(function (r) { return r.indexOf(name + "=") === 0; });
+    return m ? decodeURIComponent(m.split("=")[1]) : null;
+  }
+
+  // ---- API (same-origin) ----------------------------------------------
+  function authHeaders(extra) { var h = extra || {}; var t = getCookie(COOKIE); if (t) h["Authorization"] = "Bearer " + t; return h; }
+  function apiGet(path) { return fetch("/api" + path, { credentials: "include", headers: authHeaders() }); }
+  async function getMe() { var r = await apiGet("/auth/me"); if (r.status === 200) return await r.json(); if (r.status === 401) return null; throw new Error("me " + r.status); }
+  async function getCsrf() {
+    var r = await fetch("/api/csrf-token", { credentials: "include", headers: authHeaders({ "Cache-Control": "no-cache" }) });
+    if (!r.ok) throw new Error("csrf"); return (await r.json()).token;
+  }
+  async function createScreenname(sn, pw) {
+    var token = await getCsrf();
+    var r = await fetch("/api/screennames", { method: "POST", credentials: "include",
+      headers: authHeaders({ "Content-Type": "application/json", "X-CSRF-Token": token }),
+      body: JSON.stringify({ screenname: sn, password: pw }) });
+    var d = null; try { d = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error((d && d.message) || "Could not create screen name"); return d;
+  }
+  async function logout() {
+    try { await fetch("/api/auth/logout", { method: "POST", credentials: "include", headers: authHeaders() }); } catch (e) {}
+    document.cookie = COOKIE + "=; Max-Age=0; path=/";
+  }
+  function nameOf(me) { return (me && (me.providerUsername || me.xUsername || me.username || me.displayName)) || "friend"; }
+  function screennamesOf(me) {
+    var raw = (me && (me.screennames || me.screen_names)) || [];
+    return raw.map(function (s) { return typeof s === "string" ? { screenname: s } : s; });
+  }
+
+  var currentMe = null, menuOpen = false;
+
+  // ---- Emulator (auto-boot) -------------------------------------------
+  function bootEmulator() {
+    var emu = $("emu"), loaded = false;
+    if (isDemo) { setTimeout(function () { $("boot").classList.add("gone"); }, 1200); return; }
+    emu.addEventListener("load", function () {
+      loaded = true; emu.classList.add("loaded");
+      setTimeout(function () { $("boot").classList.add("gone"); }, 400);
+    });
+    emu.setAttribute("src", MAC_URL);
+    // If it can't embed (cross-origin CORP), offer the new-tab path.
+    setTimeout(function () { if (!loaded) { $("boot").classList.add("gone"); $("embedfail").classList.add("show"); } }, 12000);
+  }
+
+  // ---- Card show/hide --------------------------------------------------
+  function showCard(id) {
+    ["s-needsn", "s-send", "s-sent"].forEach(function (s) { $(s).hidden = (s !== id); });
+    $("panel").classList.add("show");
+    document.body.setAttribute("data-card", "on");
+  }
+  function hideCard() { $("panel").classList.remove("show"); document.body.removeAttribute("data-card"); }
+
+  // ---- Launcher (login pill / status) ---------------------------------
+  function setLauncher(html) { $("launcher").innerHTML = html; $("launcher").classList.remove("open"); menuOpen = false; }
+
+  function renderSignedOut() {
+    hideCard();
+    setLauncher(
+      '<button class="pill" id="pill-signin" type="button">' +
+        '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' +
+        'Sign in to get a screen name</button>'
+    );
+    $("pill-signin").addEventListener("click", startSignIn);
+  }
+
+  function renderSigningIn() {
+    hideCard();
+    setLauncher('<span class="pill"><span class="mini-spin"></span>Signing in&hellip;</span>');
+  }
+
+  function renderReady(me) {
+    currentMe = me;
+    hideCard();
+    var sns = screennamesOf(me);
+    var primary = sns[0] ? sns[0].screenname : nameOf(me);
+    var canAdd = sns.length < 2;
+    setLauncher(
+      '<button class="pill user" id="pill-user" type="button" aria-haspopup="true">' +
+        '<span class="av">' + primary.charAt(0).toUpperCase() + '</span>' +
+        '<span>' + primary + '</span>' +
+        '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>' +
+      '</button>' +
+      '<div id="menu" role="menu">' +
+        '<div class="menu-head"><div class="who">Signed in as @' + nameOf(me) + '</div><div class="sn">' + primary + '</div></div>' +
+        '<button class="menu-item" id="mi-send" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Send a file to AOL</button>' +
+        (canAdd ? '<button class="menu-item" id="mi-add" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add another screen name</button>' : '') +
+        '<button class="menu-item" id="mi-newtab" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open the Mac in a new tab</button>' +
+        '<button class="menu-item danger" id="mi-signout" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>' +
+      '</div>'
+    );
+    $("pill-user").addEventListener("click", toggleMenu);
+    $("mi-send").addEventListener("click", function () { closeMenu(); openSend(); });
+    if (canAdd) $("mi-add").addEventListener("click", function () { closeMenu(); openAddScreenname(); });
+    $("mi-newtab").addEventListener("click", function () { window.open(MAC_URL, "_blank", "noopener"); closeMenu(); });
+    $("mi-signout").addEventListener("click", function () { closeMenu(); doSignOut(); });
+  }
+
+  function toggleMenu() { menuOpen = !menuOpen; $("launcher").classList.toggle("open", menuOpen); }
+  function closeMenu() { menuOpen = false; $("launcher").classList.remove("open"); }
+
+  // close menu on outside click / Esc
+  document.addEventListener("click", function (e) {
+    if (menuOpen && !$("launcher").contains(e.target)) closeMenu();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeMenu(); } });
+
+  // ---- Routing ---------------------------------------------------------
+  function route(me) {
+    currentMe = me;
+    if (!me) { renderSignedOut(); return; }
+    var sns = screennamesOf(me);
+    if (sns.length === 0) renderNeedScreenname(me);
+    else renderReady(me);
+  }
+
+  async function boot() {
+    bootEmulator();
+    if (isDemo) { $("demobar").classList.add("show"); demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); return; }
+    renderSigningIn(); // neutral spinner while we check session
+    try { route(await getMe()); } catch (e) { renderSignedOut(); }
+  }
+
+  // ---- Sign in (popup w/ redirect fallback) ---------------------------
+  var pollTimer = null;
+  function startSignIn() {
+    if (isDemo) { renderSigningIn(); setTimeout(function () { route(demoMe); }, 700); return; }
+    var w = 520, h = 680, x = window.screenX + Math.max(0, (window.outerWidth - w) / 2), y = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
+    var popup = window.open("/api/auth/x/login", "dialtone_x_login", "width=" + w + ",height=" + h + ",left=" + x + ",top=" + y);
+    if (!popup || popup.closed || typeof popup.closed === "undefined") { window.location.href = "/api/auth/x/login"; return; }
+    renderSigningIn();
+    var tries = 0;
+    pollTimer = setInterval(async function () {
+      tries++;
+      if (getCookie(COOKIE)) { clearInterval(pollTimer); try { popup.close(); } catch (e) {} route(await getMe().catch(function () { return null; })); return; }
+      if (popup.closed) { clearInterval(pollTimer); route(await getMe().catch(function () { return null; })); return; }
+      if (tries > 600) { clearInterval(pollTimer); renderSignedOut(); }
+    }, 500);
+  }
+
+  function doSignOut() {
+    if (isDemo) { demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); return; }
+    logout().then(renderSignedOut);
+  }
+
+  // ---- Screen name form -----------------------------------------------
+  var addMode = false;
+  function renderNeedScreenname(me) {
+    addMode = false;
+    showCard("s-needsn");
+    $("hi-user").textContent = "Signed in as @" + nameOf(me);
+    $("s-needsn").querySelector(".headline").innerHTML = "Pick your<br/>screen name";
+    $("signout-1").style.display = "";
+    $("sn").value = ""; $("pw").value = ""; validateForm();
+    setTimeout(function () { $("sn").focus(); }, 250);
+  }
+  function openAddScreenname() {
+    addMode = true;
+    showCard("s-needsn");
+    $("hi-user").textContent = "Add another screen name";
+    $("s-needsn").querySelector(".headline").innerHTML = "New<br/>screen name";
+    $("signout-1").style.display = "none";
+    $("sn").value = ""; $("pw").value = ""; validateForm();
+    setTimeout(function () { $("sn").focus(); }, 250);
+  }
+  function validateForm() {
+    var sn = $("sn").value.trim(), pw = $("pw").value;
+    var snOk = SN_RE.test(sn), pwOk = pw.length >= PW_MIN && pw.length <= PW_MAX;
+    var sh = $("sn-hint");
+    if (!sn) { sh.className = "hint"; sh.textContent = "1–10 letters & numbers"; }
+    else if (snOk) { sh.className = "hint good"; sh.textContent = "looks good"; }
+    else { sh.className = "hint bad"; sh.textContent = "letters & numbers only, max 10"; }
+    var ph = $("pw-hint");
+    if (!pw) { ph.className = "hint"; ph.textContent = "1–8 characters"; }
+    else if (pwOk) { ph.className = "hint good"; ph.textContent = "ok"; }
+    else { ph.className = "hint bad"; ph.textContent = "max 8 characters"; }
+    $("btn-create").disabled = !(snOk && pwOk);
+  }
+  function errBox(id, msg) { var el = $(id); if (!el) return; if (msg) { el.textContent = msg; el.classList.add("show"); } else { el.textContent = ""; el.classList.remove("show"); } }
+
+  // ---- File send -------------------------------------------------------
+  var sendFile = null, sendRecip = null, sendMaxMb = 10, sendBusy = false, demoMe = null;
+  function fmtSize(b) { if (!b) return "0 B"; var k = 1024, u = ["B", "KB", "MB", "GB"], i = Math.floor(Math.log(b) / Math.log(k)); return (b / Math.pow(k, i)).toFixed(i ? 1 : 0) + " " + u[i]; }
+  function platLabel(p) { return p === "mac" ? "Mac" : p === "windows" ? "Windows" : "AOL"; }
+  async function getTransferConfig() { var r = await apiGet("/transfer/config"); if (!r.ok) return { maxFileSizeMb: 10 }; return await r.json(); }
+  async function getConnected() { var r = await apiGet("/transfer/connected-screennames"); if (!r.ok) return { screennames: [] }; return await r.json(); }
+  function uploadFileXhr(file, screenname, onProgress) {
+    return new Promise(async function (resolve, reject) {
+      var token; try { token = await getCsrf(); } catch (e) { return reject(new Error("Could not get a security token")); }
+      var xhr = new XMLHttpRequest(), fd = new FormData();
+      fd.append("file", file); fd.append("screenname", screenname);
+      xhr.upload.addEventListener("progress", function (e) { if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100)); });
+      xhr.addEventListener("load", function () { var d = null; try { d = JSON.parse(xhr.responseText); } catch (e) {} if (xhr.status >= 200 && xhr.status < 300) resolve(d || {}); else reject(new Error((d && d.message) || ("Upload failed (" + xhr.status + ")"))); });
+      xhr.addEventListener("error", function () { reject(new Error("Network error during upload")); });
+      xhr.open("POST", "/api/transfer/upload");
+      var t = getCookie(COOKIE); if (t) xhr.setRequestHeader("Authorization", "Bearer " + t);
+      xhr.setRequestHeader("X-CSRF-Token", token); xhr.send(fd);
+    });
+  }
+  function openSend() {
+    showCard("s-send");
+    sendFile = null; sendRecip = null; sendBusy = false;
+    $("dz-empty").hidden = false; $("dz-file").hidden = true; $("recip-wrap").hidden = true; $("send-progress").hidden = true;
+    $("file-input").value = ""; errBox("err-send", ""); updateSendBtn();
+    if (isDemo) { $("dz-hint").textContent = "Max 10 MB"; return; }
+    getTransferConfig().then(function (c) { sendMaxMb = c.maxFileSizeMb || 10; $("dz-hint").textContent = "Max " + sendMaxMb + " MB"; });
+  }
+  function onFilePicked(file) {
+    if (!file) return;
+    var max = (sendMaxMb || 10) * 1024 * 1024;
+    if (file.size > max) { errBox("err-send", "That file is " + fmtSize(file.size) + " - the limit is " + sendMaxMb + " MB."); return; }
+    if (file.size === 0) { errBox("err-send", "That file looks empty."); return; }
+    errBox("err-send", ""); sendFile = file;
+    $("dz-empty").hidden = true; $("dz-file").hidden = false;
+    $("dz-file-name").textContent = file.name; $("dz-file-size").textContent = fmtSize(file.size);
+    $("recip-wrap").hidden = false; loadRecipients(); updateSendBtn();
+  }
+  function clearSendFile() { sendFile = null; $("file-input").value = ""; $("dz-empty").hidden = false; $("dz-file").hidden = true; $("recip-wrap").hidden = true; updateSendBtn(); }
+  function loadRecipients() {
+    var list = $("recip-list"); list.innerHTML = ""; $("recip-empty").hidden = true;
+    var done = function (sns) {
+      if (!sns.length) { $("recip-empty").hidden = false; sendRecip = null; updateSendBtn(); return; }
+      sns.forEach(function (s) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "recip";
+        b.innerHTML = '<span class="dot"></span><span>' + s.screenname + '</span><span class="plat">' + platLabel(s.platform) + '</span>';
+        b.addEventListener("click", function () { sendRecip = s.screenname; Array.prototype.forEach.call(list.children, function (c) { c.classList.remove("sel"); }); b.classList.add("sel"); updateSendBtn(); });
+        list.appendChild(b);
+      });
+      if (sns.length === 1) list.children[0].click();
+    };
+    if (isDemo) { done((demoMe.screennames || []).map(function (s) { return { screenname: s.screenname, platform: "mac" }; })); return; }
+    getConnected().then(function (r) { done(r.screennames || []); }).catch(function () { done([]); });
+  }
+  function updateSendBtn() { var b = $("btn-send"); b.disabled = !(sendFile && sendRecip && !sendBusy); b.textContent = sendBusy ? "Sending…" : (sendRecip ? ("Send to " + sendRecip) : "Send file"); }
+  function setProgress(p, label) { $("sp-fill").style.width = p + "%"; $("sp-pct").textContent = p + "%"; if (label) $("sp-label").textContent = label; }
+  function demoUpload() { return new Promise(function (res) { var p = 0; var t = setInterval(function () { p += 13; if (p >= 100) { setProgress(100, "Delivering…"); clearInterval(t); setTimeout(res, 400); } else setProgress(p, "Uploading…"); }, 170); }); }
+  async function doUpload() {
+    if (!sendFile || !sendRecip || sendBusy) return;
+    sendBusy = true; updateSendBtn(); $("send-progress").hidden = false; setProgress(0, "Uploading…"); errBox("err-send", "");
+    try {
+      if (isDemo) await demoUpload(); else await uploadFileXhr(sendFile, sendRecip, function (p) { setProgress(p, p < 100 ? "Uploading…" : "Delivering…"); });
+      renderSent();
+    } catch (ex) { errBox("err-send", ex.message || "Upload failed"); $("send-progress").hidden = true; sendBusy = false; updateSendBtn(); }
+  }
+  function renderSent() {
+    showCard("s-sent");
+    $("sent-detail").innerHTML = "<strong>" + (sendFile ? sendFile.name : "Your file") + "</strong> is on its way to <strong>" + sendRecip + "</strong>. Accept the download prompt on the AOL side.";
+  }
+  function backToMac() { hideCard(); if (currentMe) renderReady(currentMe); else if (isDemo) renderReady(demoMe); }
+
+  // ---- Wire up ---------------------------------------------------------
+  function bind() {
+    $("sn").addEventListener("input", validateForm);
+    $("pw").addEventListener("input", validateForm);
+    $("sn-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var btn = $("btn-create"), sn = $("sn").value.trim(), pw = $("pw").value;
+      errBox("err-needsn", ""); btn.disabled = true; btn.textContent = "Creating…";
+      try {
+        if (isDemo) { demoMe.screennames = (demoMe.screennames || []).concat([{ screenname: sn, isPrimary: demoMe.screennames.length === 0 }]); renderReady(demoMe); }
+        else { await createScreenname(sn, pw); renderReady(await getMe()); }
+      } catch (ex) { errBox("err-needsn", ex.message || "Something went wrong"); btn.disabled = false; btn.textContent = addMode ? "Add it" : "Claim it"; }
+    });
+    $("signout-1").addEventListener("click", doSignOut);
+    $("send-back").addEventListener("click", backToMac);
+    $("btn-done").addEventListener("click", backToMac);
+    $("btn-send-another").addEventListener("click", openSend);
+    $("recip-refresh").addEventListener("click", loadRecipients);
+    $("btn-send").addEventListener("click", doUpload);
+    $("dz-file-x").addEventListener("click", function (e) { e.stopPropagation(); clearSendFile(); });
+    bindDropzone();
+    if (isDemo) bindDemo();
+  }
+  function bindDropzone() {
+    var dz = $("dropzone"), inp = $("file-input");
+    dz.addEventListener("click", function () { if (!sendBusy) inp.click(); });
+    dz.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!sendBusy) inp.click(); } });
+    inp.addEventListener("change", function () { if (inp.files && inp.files[0]) onFilePicked(inp.files[0]); });
+    ["dragover", "dragenter"].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); if (!sendBusy) dz.classList.add("drag"); }); });
+    ["dragleave", "dragend"].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove("drag"); }); });
+    dz.addEventListener("drop", function (e) { e.preventDefault(); e.stopPropagation(); dz.classList.remove("drag"); if (sendBusy) return; var f = e.dataTransfer.files; if (f && f[0]) onFilePicked(f[0]); });
+  }
+
+  // ---- Demo ------------------------------------------------------------
+  function bindDemo() {
+    $("demobar").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      var s = b.getAttribute("data-demo");
+      var ready = { providerUsername: "neo", screennames: [{ screenname: "SkyRunner98", isPrimary: true }] };
+      if (s === "signedout") { demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); }
+      else if (s === "needsn") { demoMe = { providerUsername: "neo", screennames: [] }; renderNeedScreenname(demoMe); }
+      else if (s === "ready") { demoMe = ready; renderReady(ready); }
+      else if (s === "menu") { demoMe = ready; renderReady(ready); toggleMenu(); }
+      else if (s === "send") { demoMe = ready; currentMe = ready; openSend(); }
+      else if (s === "sent") { demoMe = ready; sendFile = { name: "vacation.jpg", size: 184320 }; sendRecip = "SkyRunner98"; renderSent(); }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () { bind(); boot(); });
+})();
+</script>
+</body>
+</html>

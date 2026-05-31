@@ -223,6 +223,18 @@ public class DialtoneWebServer {
             ctx.json(new HealthResponse("OK", System.currentTimeMillis(), databaseManager.getStats()));
         });
 
+        // Quick-start single-page experience (emulator + inline auth + file send).
+        // Clean /quick path in addition to the static /quick.html asset.
+        app.get("/quick", ctx -> {
+            try {
+                ctx.status(200);
+                ctx.contentType("text/html");
+                ctx.result(DialtoneWebServer.class.getResourceAsStream("/public/quick.html"));
+            } catch (Exception e) {
+                ctx.status(500).result("Error loading page");
+            }
+        });
+
         // Root path now served by static file handler (React app index.html)
 
         // Authentication routes - X OAuth
@@ -326,14 +338,29 @@ public class DialtoneWebServer {
             // Enable XSS protection (legacy browsers)
             ctx.header("X-XSS-Protection", "1; mode=block");
 
-            // Prevent page from being embedded in frames (clickjacking protection)
-            ctx.header("X-Frame-Options", "DENY");
-
             // Force HTTPS in production (commented for development)
             // ctx.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 
-            // Content Security Policy - restrict resource loading
-            ctx.header("Content-Security-Policy", "default-src 'self'; " + "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + "style-src 'self' 'unsafe-inline'; " + "img-src 'self' data:; " + "connect-src 'self'; " + "font-src 'self'; " + "object-src 'none'; " + "base-uri 'self'");
+            // The quick-start page embeds the Mac emulator (mac.dialtone.live) in an
+            // iframe and needs cross-origin isolation so the emulator's SharedArrayBuffer
+            // works. It gets a relaxed-but-scoped header set; every other page stays locked.
+            String securedPath = ctx.path();
+            boolean isQuickPage = securedPath.equals("/quick") || securedPath.equals("/quick.html");
+
+            if (isQuickPage) {
+                // CSP frame-src allowlists the emulator origin (X-Frame-Options has no
+                // per-source allowlist, so it is intentionally omitted for this page only).
+                ctx.header("Content-Security-Policy", "default-src 'self'; " + "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + "style-src 'self' 'unsafe-inline'; " + "img-src 'self' data:; " + "connect-src 'self'; " + "font-src 'self'; " + "frame-src https://mac.dialtone.live; " + "object-src 'none'; " + "base-uri 'self'");
+                // Cross-origin isolation required for the emulator's SharedArrayBuffer.
+                // mac.dialtone.live (same-site) sends COEP require-corp + CORP same-site.
+                ctx.header("Cross-Origin-Opener-Policy", "same-origin");
+                ctx.header("Cross-Origin-Embedder-Policy", "require-corp");
+            } else {
+                // Prevent page from being embedded in frames (clickjacking protection)
+                ctx.header("X-Frame-Options", "DENY");
+                // Content Security Policy - restrict resource loading
+                ctx.header("Content-Security-Policy", "default-src 'self'; " + "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + "style-src 'self' 'unsafe-inline'; " + "img-src 'self' data:; " + "connect-src 'self'; " + "font-src 'self'; " + "object-src 'none'; " + "base-uri 'self'");
+            }
 
             // Referrer policy
             ctx.header("Referrer-Policy", "strict-origin-when-cross-origin");
