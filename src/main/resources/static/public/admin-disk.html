@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Dialtone Admin - Edit Default Disk</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>
+  /*
+   * Admin-only disk editor. Boots the default Mac image in WRITABLE (disk-server)
+   * mode so changes persist to the shared base disk. Gated by Dialtone admin auth
+   * (the JWT carries isAdmin); the same token authorizes writes at the relay.
+   * Snapshots the image (N-3) before the writable session starts.
+   */
+  :root { --navy-900:#00131f; --navy-800:#001e37; --orange:#fc9d2c; --orange-lt:#ffc864;
+    --orange-dk:#965a14; --ink:#001e37; --paper:#eaf2f8; --muted:#9db4c7; --danger:#ff6b6b; --ok:#45d483;
+    --ease:cubic-bezier(0.22,1,0.36,1); }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--navy-900); color:var(--paper);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden; }
+
+  #stage { position:fixed; inset:0; overflow:hidden;
+    background:radial-gradient(1200px 800px at 70% -10%,#073a63 0,transparent 60%),
+      radial-gradient(900px 700px at 10% 110%,#04243d 0,transparent 55%),
+      linear-gradient(160deg,#00131f,#001e37 60%,#00131f); }
+  #emu { position:absolute; inset:0; width:100%; height:100%; border:0; opacity:0;
+    transition:opacity 1s var(--ease); }
+  #emu.loaded { opacity:1; }
+
+  /* Danger banner - always visible while editing */
+  #danger { position:fixed; top:0; left:0; right:0; z-index:40;
+    display:flex; align-items:center; gap:12px; padding:10px 16px;
+    background:linear-gradient(90deg,rgba(150,90,20,0.96),rgba(120,40,40,0.96));
+    border-bottom:1px solid rgba(255,107,107,0.5);
+    font-size:13px; font-weight:600; box-shadow:0 6px 20px -8px rgba(0,0,0,0.7); }
+  #danger .pip { width:9px; height:9px; border-radius:50%; background:var(--danger);
+    box-shadow:0 0 0 0 rgba(255,107,107,0.6); animation:pulse 1.6s infinite; flex:0 0 auto; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,107,107,0.6);} 70%{box-shadow:0 0 0 8px rgba(255,107,107,0);} 100%{box-shadow:0 0 0 0 rgba(255,107,107,0);} }
+  #danger .grow { flex:1; }
+  #danger b { color:#fff; }
+  #danger .mini { font-size:11px; color:rgba(255,255,255,0.7); font-weight:500; }
+  #danger a { color:#fff; text-decoration:underline; font-size:12px; }
+
+  /* Center overlay (gate / snapshot / error states) */
+  #overlay { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(0,8,16,0.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+  #overlay.hidden { display:none; }
+  .card { width:420px; max-width:calc(100vw - 32px); border-radius:18px; padding:26px 24px;
+    background:linear-gradient(165deg,rgba(10,38,62,0.94),rgba(0,18,33,0.97));
+    border:1px solid rgba(255,255,255,0.13); box-shadow:0 24px 60px -12px rgba(0,0,0,0.7); text-align:center; }
+  .card .eyebrow { font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--orange); margin:0 0 8px; }
+  .card h1 { font-size:22px; font-weight:800; margin:0 0 8px; letter-spacing:-0.3px; }
+  .card p { font-size:13.5px; line-height:1.55; color:var(--muted); margin:0 0 18px; }
+  .card p.left { text-align:left; }
+  .spin { width:26px; height:26px; border-radius:50%; border:3px solid rgba(255,255,255,0.2);
+    border-top-color:var(--orange); animation:rot 0.8s linear infinite; margin:4px auto 0; }
+  @keyframes rot { to { transform:rotate(360deg); } }
+  .btn { width:100%; border:0; border-radius:12px; padding:14px 16px; font-size:15px; font-weight:700;
+    cursor:pointer; font-family:inherit; transition:transform 0.12s var(--ease); }
+  .btn:active { transform:translateY(1px); }
+  .btn-primary { background:linear-gradient(180deg,var(--orange-lt),var(--orange) 55%,var(--orange-dk)); color:var(--ink);
+    box-shadow:0 10px 26px -8px rgba(252,157,44,0.6); }
+  .btn-danger { background:linear-gradient(180deg,#ff8a8a,#d64545); color:#fff; box-shadow:0 10px 26px -8px rgba(214,69,69,0.5); }
+  .btn-ghost { background:rgba(255,255,255,0.06); color:var(--paper); border:1px solid rgba(255,255,255,0.14); }
+  .btn + .btn { margin-top:10px; }
+  .err { background:rgba(255,107,107,0.12); border:1px solid rgba(255,107,107,0.35); color:#ffd0d0;
+    border-radius:10px; padding:10px 12px; font-size:12.5px; margin:0 0 16px; text-align:left; }
+  .checklist { text-align:left; font-size:12.5px; color:var(--muted); line-height:1.7; margin:0 0 18px; padding-left:18px; }
+  .checklist b { color:var(--paper); }
+
+  #toolbar { position:fixed; bottom:max(16px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+    z-index:42; display:none; align-items:center; gap:10px; padding:10px 14px; border-radius:999px;
+    background:rgba(10,38,62,0.9); border:1px solid rgba(255,255,255,0.14);
+    box-shadow:0 16px 40px -12px rgba(0,0,0,0.7); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
+  #toolbar.show { display:flex; }
+  #toolbar .lbl { font-size:12px; color:var(--muted); }
+  #toolbar .lbl b { color:var(--ok); }
+  #toolbar button { font:inherit; font-size:12.5px; font-weight:700; border-radius:8px; padding:7px 12px; cursor:pointer; border:0; }
+  .tb-snap { background:rgba(255,255,255,0.08); color:var(--paper); border:1px solid rgba(255,255,255,0.16); }
+  .tb-done { background:linear-gradient(180deg,var(--orange-lt),var(--orange-dk)); color:var(--ink); }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <iframe id="emu" title="Mac OS - writable admin session" tabindex="0"
+      allow="cross-origin-isolated; autoplay; clipboard-read; clipboard-write"></iframe>
+  </div>
+
+  <div id="danger" style="display:none">
+    <span class="pip"></span>
+    <span class="grow">EDITING THE LIVE DEFAULT IMAGE - <b>changes are permanent</b>. <span class="mini" id="danger-disk"></span></span>
+    <a href="/quick">Exit</a>
+  </div>
+
+  <div id="toolbar">
+    <span class="lbl">Writable session <b>active</b></span>
+    <button class="tb-snap" id="tb-snap" type="button">Snapshot now</button>
+    <button class="tb-done" id="tb-done" type="button">Finish &amp; exit</button>
+  </div>
+
+  <div id="overlay">
+    <div class="card" id="card"><div class="spin"></div><h1 style="margin-top:14px">Checking admin access&hellip;</h1></div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var COOKIE = "dialtone_auth_token";
+  var MAC_ORIGIN = "https://mac.dialtone.live";
+  var DEFAULT_DISK = "default_system7-6-1.dsk";
+
+  function $(id){ return document.getElementById(id); }
+  function getCookie(name){ var m=document.cookie.split("; ").find(function(r){return r.indexOf(name+"=")===0;}); return m?decodeURIComponent(m.split("=")[1]):null; }
+  function authHeaders(extra){ var h=extra||{}; var t=getCookie(COOKIE); if(t) h["Authorization"]="Bearer "+t; return h; }
+
+  function setCard(html){ $("card").innerHTML = html; $("overlay").classList.remove("hidden"); }
+  function hideOverlay(){ $("overlay").classList.add("hidden"); }
+
+  async function getMe(){
+    var r = await fetch("/api/auth/me",{credentials:"include",headers:authHeaders()});
+    if(r.status===200) return await r.json();
+    return null;
+  }
+
+  function renderNotAdmin(me){
+    setCard(
+      '<p class="eyebrow">Admin only</p>'+
+      '<h1>Not authorized</h1>'+
+      '<p>'+(me?('You are signed in as @'+(me.providerUsername||me.xUsername||"user")+', which is not an admin account.'):'You need to sign in with an admin account.')+'</p>'+
+      '<button class="btn btn-primary" id="go-quick" type="button">Go to Dialtone</button>'
+    );
+    $("go-quick").addEventListener("click",function(){ location.href="/quick"; });
+  }
+
+  function renderConfirm(me){
+    setCard(
+      '<p class="eyebrow">Admin &middot; @'+(me.providerUsername||me.xUsername||"admin")+'</p>'+
+      '<h1>Edit the default disk</h1>'+
+      '<p class="left">You are about to boot <b>'+DEFAULT_DISK+'</b> in <b>writable</b> mode. Everything you change is saved to the image every Dialtone visitor boots.</p>'+
+      '<ul class="checklist">'+
+      '<li>A <b>snapshot</b> is taken before you start (last 3 kept).</li>'+
+      '<li>Other visitors keep booting normally; they <b>cannot write</b> while you hold the lock.</li>'+
+      '<li>Make your changes, then <b>shut down the Mac cleanly</b> (Special &rsaquo; Shut Down) before exiting so the filesystem flushes.</li>'+
+      '</ul>'+
+      '<div class="err" id="err" style="display:none"></div>'+
+      '<button class="btn btn-danger" id="start" type="button">Snapshot &amp; start editing</button>'+
+      '<button class="btn btn-ghost" id="cancel" type="button">Cancel</button>'
+    );
+    $("cancel").addEventListener("click",function(){ location.href="/quick"; });
+    $("start").addEventListener("click",function(){ startEditing(me); });
+  }
+
+  function showErr(msg){ var e=$("err"); if(e){ e.textContent=msg; e.style.display="block"; } }
+
+  async function snapshot(){
+    // Admin-gated relay endpoint; token authorizes the write.
+    var url = MAC_ORIGIN + "/disk/snapshot?name=" + encodeURIComponent(DEFAULT_DISK);
+    var r = await fetch(url, { method:"POST", headers:{ "Authorization":"Bearer "+getCookie(COOKIE) } });
+    if(!r.ok){ throw new Error("Snapshot failed ("+r.status+")"); }
+    return await r.json().catch(function(){ return {}; });
+  }
+
+  function launchEmulator(){
+    var token = getCookie(COOKIE);
+    var url = MAC_ORIGIN + "/?mode=disk-server&disk=" + encodeURIComponent(DEFAULT_DISK) +
+      "&adminToken=" + encodeURIComponent(token);
+    var emu = $("emu");
+    emu.addEventListener("load", function(){ emu.classList.add("loaded"); setTimeout(function(){ try{emu.focus();}catch(e){} try{if(emu.contentWindow)emu.contentWindow.focus();}catch(e){} }, 600); });
+    emu.setAttribute("src", url);
+    $("danger-disk").textContent = DEFAULT_DISK;
+    $("danger").style.display = "flex";
+    $("toolbar").classList.add("show");
+  }
+
+  async function startEditing(me){
+    var btn=$("start"); if(btn){ btn.disabled=true; btn.textContent="Snapshotting…"; }
+    try {
+      var snap = await snapshot();
+      console.log("[admin-disk] snapshot:", snap);
+    } catch(ex){
+      showErr((ex && ex.message || "Snapshot failed") + " - not starting the writable session.");
+      if(btn){ btn.disabled=false; btn.textContent="Snapshot & start editing"; }
+      return;
+    }
+    hideOverlay();
+    launchEmulator();
+  }
+
+  async function manualSnapshot(){
+    var b=$("tb-snap"); var old=b.textContent; b.disabled=true; b.textContent="Snapshotting…";
+    try { await snapshot(); b.textContent="Snapshot saved"; }
+    catch(e){ b.textContent="Snapshot failed"; }
+    setTimeout(function(){ b.disabled=false; b.textContent=old; }, 1800);
+  }
+
+  function bindToolbar(){
+    $("tb-snap").addEventListener("click", manualSnapshot);
+    $("tb-done").addEventListener("click", function(){
+      if(confirm("Did you shut the Mac down cleanly (Special > Shut Down)? Exit the writable session?")) location.href="/quick";
+    });
+  }
+
+  async function boot(){
+    bindToolbar();
+    var me = null;
+    try { me = await getMe(); } catch(e){}
+    if(!me || !(me.isAdmin)){ renderNotAdmin(me); return; }
+    renderConfirm(me);
+  }
+
+  document.addEventListener("DOMContentLoaded", boot);
+})();
+</script>
+</body>
+</html>

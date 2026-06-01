@@ -235,6 +235,32 @@ public class DialtoneWebServer {
             }
         });
 
+        // Root: the quick-start emulator experience is now the Dialtone landing.
+        // (The previous React landing remains reachable at its own routes via the
+        // SPA fallback, e.g. /dashboard, /setup.)
+        app.get("/", ctx -> {
+            try {
+                ctx.status(200);
+                ctx.contentType("text/html");
+                ctx.result(DialtoneWebServer.class.getResourceAsStream("/public/quick.html"));
+            } catch (Exception e) {
+                ctx.status(500).result("Error loading page");
+            }
+        });
+
+        // Admin disk editor (writable emulator session against the default image).
+        // Page is admin-gated client-side via /api/auth/me; the relay independently
+        // verifies the admin JWT before allowing any write.
+        app.get("/admin/disk", ctx -> {
+            try {
+                ctx.status(200);
+                ctx.contentType("text/html");
+                ctx.result(DialtoneWebServer.class.getResourceAsStream("/public/admin-disk.html"));
+            } catch (Exception e) {
+                ctx.status(500).result("Error loading page");
+            }
+        });
+
         // Root path now served by static file handler (React app index.html)
 
         // Authentication routes - X OAuth
@@ -345,9 +371,10 @@ public class DialtoneWebServer {
             // iframe and needs cross-origin isolation so the emulator's SharedArrayBuffer
             // works. It gets a relaxed-but-scoped header set; every other page stays locked.
             String securedPath = ctx.path();
-            boolean isQuickPage = securedPath.equals("/quick") || securedPath.equals("/quick.html");
+            boolean isEmulatorPage = securedPath.equals("/") || securedPath.equals("/quick") || securedPath.equals("/quick.html")
+                || securedPath.equals("/admin/disk") || securedPath.equals("/admin-disk.html");
 
-            if (isQuickPage) {
+            if (isEmulatorPage) {
                 // CSP frame-src allowlists the emulator origin (X-Frame-Options has no
                 // per-source allowlist, so it is intentionally omitted for this page only).
                 ctx.header("Content-Security-Policy", "default-src 'self'; " + "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + "style-src 'self' 'unsafe-inline'; " + "img-src 'self' data:; " + "connect-src 'self'; " + "font-src 'self'; " + "frame-src https://mac.dialtone.live; " + "object-src 'none'; " + "base-uri 'self'");
