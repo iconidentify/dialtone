@@ -157,9 +157,20 @@ public class AuthController {
     }
 
     /**
-     * Common authentication completion logic for both X and Discord.
+     * Common authentication completion logic for X, Discord, and email.
      */
     private void completeAuthentication(Context ctx, User user, String provider) {
+        completeAuthentication(ctx, user, provider, null);
+    }
+
+    /**
+     * Completes authentication and redirects the user back to the surface that
+     * started the flow. The auth cookie is set regardless, so a recognized
+     * {@code origin} (e.g. "quick") can return the user straight to that page,
+     * which reads the cookie and shows the signed-in state inline. Unknown or
+     * absent origins fall back to the React callback page.
+     */
+    private void completeAuthentication(Context ctx, User user, String provider, String origin) {
         // Generate JWT token for web session with admin status
         String token = jwtTokenService.generateToken(user, adminSecurityService);
         setAuthCookie(ctx, token);
@@ -172,19 +183,41 @@ public class AuthController {
             LoggerUtil.warn("Could not retrieve screennames during login: " + e.getMessage());
         }
 
-        LoggerUtil.info("Successful " + provider + " OAuth login for user: " + user.getProviderUsername());
+        LoggerUtil.info("Successful " + provider + " login for user: " + user.getProviderUsername());
 
-        // Redirect to frontend callback page with token
-        String redirectUrl = "/auth/callback?token=" + token + "&success=true";
+        String redirectUrl = resolvePostLoginRedirect(origin, token);
         ctx.redirect(redirectUrl);
+    }
+
+    /**
+     * Maps an origin tag to a safe same-origin redirect path. Whitelisted to
+     * prevent open-redirect abuse; the cookie is already set so no token needs
+     * to ride in the URL for the quick surface.
+     */
+    private String resolvePostLoginRedirect(String origin, String token) {
+        if ("quick".equals(origin)) {
+            return "/quick";
+        }
+        return "/auth/callback?token=" + token + "&success=true";
     }
 
     /**
      * Redirect to frontend with error information.
      */
     private void redirectWithError(Context ctx, String errorMessage) {
-        String errorUrl = "/auth/callback?success=false&error=" +
-            java.net.URLEncoder.encode(errorMessage, java.nio.charset.StandardCharsets.UTF_8);
+        redirectWithError(ctx, errorMessage, null);
+    }
+
+    /**
+     * Redirect with error information, returning to the originating surface when
+     * recognized (e.g. /quick) so the error is shown inline there rather than on
+     * the React callback page.
+     */
+    private void redirectWithError(Context ctx, String errorMessage, String origin) {
+        String encoded = java.net.URLEncoder.encode(errorMessage, java.nio.charset.StandardCharsets.UTF_8);
+        String errorUrl = "quick".equals(origin)
+            ? "/quick?login_error=" + encoded
+            : "/auth/callback?success=false&error=" + encoded;
         ctx.redirect(errorUrl);
     }
 
@@ -271,7 +304,7 @@ public class AuthController {
                 return;
             }
 
-            emailAuthService.initiateLogin(request.email, getClientIp(ctx));
+            emailAuthService.initiateLogin(request.email, getClientIp(ctx), request.origin);
 
             ctx.json(new MagicLinkSentResponse(
                 "Check your email for a sign-in link",
@@ -294,31 +327,33 @@ public class AuthController {
      * GET /api/auth/email/verify?token=xxx
      */
     public void verifyMagicLink(Context ctx) {
+        String origin = ctx.queryParam("origin");
         try {
             if (!emailAuthService.isEnabled()) {
-                redirectWithError(ctx, "Email login is not configured");
+                redirectWithError(ctx, "Email login is not configured", origin);
                 return;
             }
 
             String token = ctx.queryParam("token");
-            
+
             if (token == null || token.isBlank()) {
-                redirectWithError(ctx, "Invalid or missing token");
+                redirectWithError(ctx, "Invalid or missing token", origin);
                 return;
             }
 
             User user = emailAuthService.validateMagicLink(token);
-            
-            // Complete authentication flow (same as OAuth)
-            completeAuthentication(ctx, user, "Email");
+
+            // Complete authentication flow (same as OAuth), returning the user to
+            // the surface that initiated the login when one was supplied.
+            completeAuthentication(ctx, user, "Email", origin);
 
         } catch (EmailAuthService.AuthenticationException e) {
             LoggerUtil.warn("Magic link verification failed: " + e.getMessage());
-            redirectWithError(ctx, e.getMessage());
+            redirectWithError(ctx, e.getMessage(), origin);
 
         } catch (Exception e) {
             LoggerUtil.error("Unexpected error verifying magic link: " + e.getMessage());
-            redirectWithError(ctx, "An unexpected error occurred during authentication");
+            redirectWithError(ctx, "An unexpected error occurred during authentication", origin);
         }
     }
 
@@ -371,9 +406,10 @@ public class AuthController {
     ) {}
 
     /**
-     * Request for email login initiation.
+     * Request for email login initiation. {@code origin} optionally tags which
+     * surface initiated the login so the magic link returns there (e.g. "quick").
      */
-    public record EmailLoginRequest(String email) {}
+    public record EmailLoginRequest(String email, String origin) {}
 
     /**
      * Response after magic link is sent.

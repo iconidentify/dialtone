@@ -73,6 +73,17 @@ public class EmailAuthService {
      * @throws AuthenticationException if rate limited or email send fails
      */
     public void initiateLogin(String email, String ipAddress) throws AuthenticationException {
+        initiateLogin(email, ipAddress, null);
+    }
+
+    /**
+     * Initiate magic link login, tagging the link with the origin surface so the
+     * verify step can return the user to where they started (e.g. the /quick page
+     * instead of the React dashboard).
+     *
+     * @param origin Optional origin tag carried through to the verify redirect (e.g. "quick")
+     */
+    public void initiateLogin(String email, String ipAddress, String origin) throws AuthenticationException {
         if (!isEnabled()) {
             throw new AuthenticationException("Email authentication is not enabled");
         }
@@ -104,8 +115,12 @@ public class EmailAuthService {
             // Store token in database
             storeMagicLinkToken(normalizedEmail, token, userId, expiresAt, ipAddress);
             
-            // Build magic link URL (must point to API endpoint, not frontend)
+            // Build magic link URL (must point to API endpoint, not frontend).
+            // Carry the origin so verify can route the user back to where they started.
             String magicLinkUrl = baseUrl + "/api/auth/email/verify?token=" + token;
+            if (origin != null && !origin.isBlank()) {
+                magicLinkUrl += "&origin=" + java.net.URLEncoder.encode(origin, java.nio.charset.StandardCharsets.UTF_8);
+            }
             
             // Send email
             emailService.sendMagicLinkEmail(normalizedEmail, magicLinkUrl, expiryMinutes);
