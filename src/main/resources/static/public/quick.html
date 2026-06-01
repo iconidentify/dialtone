@@ -162,6 +162,8 @@
   .btn svg { width: 18px; height: 18px; }
   .btn-x { background: #fff; color: #0b0b0b; box-shadow: 0 8px 24px -8px rgba(255,255,255,0.4); }
   .btn-x:hover { transform: translateY(-1px); }
+  .btn-discord { background: #5865f2; color: #fff; box-shadow: 0 8px 24px -8px rgba(88,101,242,0.55); }
+  .btn-discord:hover { transform: translateY(-1px); background: #4e5bdc; }
   .btn-primary { background: linear-gradient(180deg, var(--orange-lt), var(--orange) 55%, var(--orange-dk));
     color: var(--ink); box-shadow: 0 10px 26px -8px rgba(252,157,44,0.6), 0 0 0 1px rgba(255,200,100,0.5) inset; }
   .btn-primary:hover { transform: translateY(-1px); }
@@ -284,6 +286,7 @@
   <!-- Demo controls (?demo=1 / file://) -->
   <div id="demobar">
     <button data-demo="signedout">signed out</button>
+    <button data-demo="auth">auth</button>
     <button data-demo="needsn">need s/n</button>
     <button data-demo="ready">ready</button>
     <button data-demo="menu">menu</button>
@@ -294,6 +297,42 @@
   <!-- Compact card (forms only) -->
   <div id="panel">
     <div class="card" id="card">
+
+      <!-- sign in (choose a method) -->
+      <div id="s-auth" hidden>
+        <p class="eyebrow">No download required</p>
+        <h1 class="headline">Get a<br/>screen name</h1>
+        <p class="sub">Sign in to claim your screen name, then hop on the Mac. Pick whatever's easiest.</p>
+        <div class="err" id="err-auth"></div>
+        <div class="stack" id="auth-methods">
+          <button class="btn btn-x" id="auth-x" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            Continue with X
+          </button>
+          <button class="btn btn-discord" id="auth-discord" type="button" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            Continue with Discord
+          </button>
+          <button class="btn btn-ghost" id="auth-email-open" type="button" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            Continue with email
+          </button>
+        </div>
+        <form id="email-form" autocomplete="off" hidden>
+          <div class="field">
+            <div class="field-row"><label for="email">Email</label><span class="hint" id="email-hint">We'll send a sign-in link</span></div>
+            <input class="in" id="email" name="email" type="email" placeholder="you@example.com" autocapitalize="off" spellcheck="false" />
+          </div>
+          <button class="btn btn-primary" id="email-send" type="submit" disabled>Send sign-in link</button>
+          <div class="foot"><button class="linklike" id="email-back" type="button">&lsaquo; Other ways to sign in</button><span></span></div>
+        </form>
+        <div id="email-sent" hidden>
+          <div class="sent-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <h1 class="headline center">Check your email</h1>
+          <p class="sub center" id="email-sent-detail">We sent a sign-in link. Click it and you'll land right back here, signed in.</p>
+          <div class="foot" style="justify-content:center"><button class="linklike" id="email-restart">Use a different method</button></div>
+        </div>
+      </div>
 
       <!-- needs screen name -->
       <div id="s-needsn" hidden>
@@ -421,7 +460,7 @@
 
   // ---- Card show/hide --------------------------------------------------
   function showCard(id) {
-    ["s-needsn", "s-send", "s-sent"].forEach(function (s) { $(s).hidden = (s !== id); });
+    ["s-auth", "s-needsn", "s-send", "s-sent"].forEach(function (s) { $(s).hidden = (s !== id); });
     $("panel").classList.add("show");
     document.body.setAttribute("data-card", "on");
   }
@@ -434,10 +473,10 @@
     hideCard();
     setLauncher(
       '<button class="pill" id="pill-signin" type="button">' +
-        '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>' +
         'Sign in to get a screen name</button>'
     );
-    $("pill-signin").addEventListener("click", startSignIn);
+    $("pill-signin").addEventListener("click", openAuthCard);
   }
 
   function renderSigningIn() {
@@ -492,26 +531,82 @@
 
   async function boot() {
     bootEmulator();
-    if (isDemo) { $("demobar").classList.add("show"); demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); return; }
+    if (isDemo) { providers = { xEnabled: true, discordEnabled: true, emailEnabled: true }; $("demobar").classList.add("show"); demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); return; }
     renderSigningIn(); // neutral spinner while we check session
+    loadProviders();
     try { route(await getMe()); } catch (e) { renderSignedOut(); }
   }
 
-  // ---- Sign in (popup w/ redirect fallback) ---------------------------
+  // ---- Sign in (X / Discord OAuth + Email magic link) -----------------
+  var providers = { xEnabled: true, discordEnabled: false, emailEnabled: false };
   var pollTimer = null;
-  function startSignIn() {
+
+  async function loadProviders() {
+    try { var r = await apiGet("/auth/providers"); if (r.ok) providers = await r.json(); } catch (e) {}
+  }
+
+  function openAuthCard() {
+    showCard("s-auth");
+    errBox("err-auth", "");
+    $("email-form").hidden = true;
+    $("email-sent").hidden = true;
+    $("auth-methods").hidden = false;
+    $("auth-discord").hidden = !providers.discordEnabled;
+    $("auth-email-open").hidden = !providers.emailEnabled;
+    $("email").value = ""; validateEmail();
+  }
+
+  // OAuth (X, Discord): popup + cookie poll, full-page redirect fallback.
+  function startOAuth(provider) {
     if (isDemo) { renderSigningIn(); setTimeout(function () { route(demoMe); }, 700); return; }
+    var url = "/api/auth/" + provider + "/login";
     var w = 520, h = 680, x = window.screenX + Math.max(0, (window.outerWidth - w) / 2), y = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
-    var popup = window.open("/api/auth/x/login", "dialtone_x_login", "width=" + w + ",height=" + h + ",left=" + x + ",top=" + y);
-    if (!popup || popup.closed || typeof popup.closed === "undefined") { window.location.href = "/api/auth/x/login"; return; }
+    var popup = window.open(url, "dialtone_" + provider + "_login", "width=" + w + ",height=" + h + ",left=" + x + ",top=" + y);
+    if (!popup || popup.closed || typeof popup.closed === "undefined") { window.location.href = url; return; }
     renderSigningIn();
+    pollCookie(function () { try { popup.close(); } catch (e) {} }, function () { return popup.closed; });
+  }
+
+  // Poll for the auth cookie (set by OAuth popup or by clicking the email link
+  // in the same browser). onDone fires once the cookie appears.
+  function pollCookie(onCookie, isAbandoned) {
+    clearInterval(pollTimer);
     var tries = 0;
     pollTimer = setInterval(async function () {
       tries++;
-      if (getCookie(COOKIE)) { clearInterval(pollTimer); try { popup.close(); } catch (e) {} route(await getMe().catch(function () { return null; })); return; }
-      if (popup.closed) { clearInterval(pollTimer); route(await getMe().catch(function () { return null; })); return; }
-      if (tries > 600) { clearInterval(pollTimer); renderSignedOut(); }
+      if (getCookie(COOKIE)) { clearInterval(pollTimer); if (onCookie) onCookie(); route(await getMe().catch(function () { return null; })); return; }
+      if (isAbandoned && isAbandoned()) { clearInterval(pollTimer); route(await getMe().catch(function () { return null; })); return; }
+      if (tries > 1200) { clearInterval(pollTimer); renderSignedOut(); } // ~10 min
     }, 500);
+  }
+
+  function validateEmail() {
+    var v = $("email").value.trim();
+    var ok = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+    $("email-send").disabled = !ok;
+    return ok;
+  }
+  async function sendMagicLink(e) {
+    if (e) e.preventDefault();
+    if (!validateEmail()) return;
+    var email = $("email").value.trim(), btn = $("email-send");
+    errBox("err-auth", ""); btn.disabled = true; btn.textContent = "Sending…";
+    try {
+      if (isDemo) { await new Promise(function (r) { setTimeout(r, 500); }); }
+      else {
+        var token = await getCsrf().catch(function () { return null; });
+        var headers = authHeaders({ "Content-Type": "application/json" });
+        if (token) headers["X-CSRF-Token"] = token;
+        var r = await fetch("/api/auth/email/login", { method: "POST", credentials: "include", headers: headers, body: JSON.stringify({ email: email }) });
+        var d = null; try { d = await r.json(); } catch (ex) {}
+        if (!r.ok) throw new Error((d && d.message) || "Couldn't send the link");
+      }
+      $("auth-methods").hidden = true; $("email-form").hidden = true; $("email-sent").hidden = false;
+      $("email-sent-detail").innerHTML = "We sent a sign-in link to <strong>" + email + "</strong>. Click it and you'll be signed in here automatically.";
+      if (!isDemo) pollCookie(); // magic link click in same browser sets the cookie
+    } catch (ex) {
+      errBox("err-auth", ex.message || "Couldn't send the link"); btn.disabled = false; btn.textContent = "Send sign-in link";
+    }
   }
 
   function doSignOut() {
@@ -638,6 +733,14 @@
       } catch (ex) { errBox("err-needsn", ex.message || "Something went wrong"); btn.disabled = false; btn.textContent = addMode ? "Add it" : "Claim it"; }
     });
     $("signout-1").addEventListener("click", doSignOut);
+    // auth methods
+    $("auth-x").addEventListener("click", function () { startOAuth("x"); });
+    $("auth-discord").addEventListener("click", function () { startOAuth("discord"); });
+    $("auth-email-open").addEventListener("click", function () { $("auth-methods").hidden = true; $("email-form").hidden = false; setTimeout(function () { $("email").focus(); }, 200); });
+    $("email").addEventListener("input", validateEmail);
+    $("email-form").addEventListener("submit", sendMagicLink);
+    $("email-back").addEventListener("click", function () { $("email-form").hidden = true; $("auth-methods").hidden = false; });
+    $("email-restart").addEventListener("click", openAuthCard);
     $("send-back").addEventListener("click", backToMac);
     $("btn-done").addEventListener("click", backToMac);
     $("btn-send-another").addEventListener("click", openSend);
@@ -664,6 +767,7 @@
       var s = b.getAttribute("data-demo");
       var ready = { providerUsername: "neo", screennames: [{ screenname: "SkyRunner98", isPrimary: true }] };
       if (s === "signedout") { demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); }
+      else if (s === "auth") { openAuthCard(); }
       else if (s === "needsn") { demoMe = { providerUsername: "neo", screennames: [] }; renderNeedScreenname(demoMe); }
       else if (s === "ready") { demoMe = ready; renderReady(ready); }
       else if (s === "menu") { demoMe = ready; renderReady(ready); toggleMenu(); }
