@@ -529,12 +529,29 @@
     else renderReady(me);
   }
 
+  // If a magic link failed, it returns to /quick?login_error=...; surface it
+  // inline in the auth card and clean the URL.
+  function consumeLoginError() {
+    var m = /[?&]login_error=([^&]*)/.exec(location.search);
+    if (!m) return null;
+    var msg = decodeURIComponent(m[1].replace(/\+/g, " "));
+    if (history.replaceState) history.replaceState(null, "", location.pathname);
+    return msg;
+  }
+
   async function boot() {
     bootEmulator();
     if (isDemo) { providers = { xEnabled: true, discordEnabled: true, emailEnabled: true }; $("demobar").classList.add("show"); demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); return; }
     renderSigningIn(); // neutral spinner while we check session
-    loadProviders();
-    try { route(await getMe()); } catch (e) { renderSignedOut(); }
+    await loadProviders();
+    var loginErr = consumeLoginError();
+    try {
+      var me = await getMe();
+      if (me) { route(me); return; }
+    } catch (e) {}
+    // Not signed in (or link failed): show the auth card if there's an error to surface.
+    if (loginErr) { renderSignedOut(); openAuthCard(); errBox("err-auth", loginErr); }
+    else renderSignedOut();
   }
 
   // ---- Sign in (X / Discord OAuth + Email magic link) -----------------
@@ -597,7 +614,7 @@
         var token = await getCsrf().catch(function () { return null; });
         var headers = authHeaders({ "Content-Type": "application/json" });
         if (token) headers["X-CSRF-Token"] = token;
-        var r = await fetch("/api/auth/email/login", { method: "POST", credentials: "include", headers: headers, body: JSON.stringify({ email: email }) });
+        var r = await fetch("/api/auth/email/login", { method: "POST", credentials: "include", headers: headers, body: JSON.stringify({ email: email, origin: "quick" }) });
         var d = null; try { d = await r.json(); } catch (ex) {}
         if (!r.ok) throw new Error((d && d.message) || "Couldn't send the link");
       }
