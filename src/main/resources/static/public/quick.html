@@ -80,6 +80,22 @@
   #stage::after { content: ""; position: absolute; inset: 0; pointer-events: none;
     background: radial-gradient(120% 90% at 50% 38%, transparent 50%, rgba(0,8,16,0.45) 100%); }
 
+  /* "Click the Mac to type" hint - shown until the iframe has keyboard focus */
+  #type-hint {
+    position: fixed; z-index: 35; left: 50%; bottom: max(22px, env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(8px);
+    display: none; align-items: center; gap: 8px;
+    padding: 9px 15px; border-radius: 999px; cursor: pointer;
+    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--paper);
+    background: rgba(10,38,62,0.82); border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    opacity: 0; transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  }
+  #type-hint.show { display: inline-flex; opacity: 1; transform: translateX(-50%) translateY(0); animation: hintPulse 2.4s ease-in-out 1s infinite; }
+  #type-hint svg { width: 16px; height: 16px; opacity: 0.85; }
+  @keyframes hintPulse { 0%,100% { box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6); } 50% { box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6), 0 0 0 4px rgba(252,157,44,0.12); } }
+
   /* ---- Brand (top-left) ---- */
   #brand { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 18px;
     display: flex; align-items: center; gap: 10px; z-index: 30; text-decoration: none; color: var(--paper); user-select: none; }
@@ -258,9 +274,13 @@
 
   <!-- Full-screen emulator: auto-boots on load -->
   <div id="stage">
-    <iframe id="emu" title="Mac System 7 running AOL 3.0"
+    <iframe id="emu" title="Mac System 7 running AOL 3.0" tabindex="0"
       allow="cross-origin-isolated; autoplay; clipboard-read; clipboard-write"
       referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <button id="type-hint" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/></svg>
+      Click the Mac to type
+    </button>
     <div id="boot">
       <div class="boot-orb"></div>
       <div class="boot-text">Booting Mac OS&hellip;</div>
@@ -451,11 +471,50 @@
     if (isDemo) { setTimeout(function () { $("boot").classList.add("gone"); }, 1200); return; }
     emu.addEventListener("load", function () {
       loaded = true; emu.classList.add("loaded");
-      setTimeout(function () { $("boot").classList.add("gone"); }, 400);
+      setTimeout(function () { $("boot").classList.add("gone"); focusEmulator(); }, 400);
+      // If autofocus didn't land (e.g. parent kept focus), nudge the user.
+      setTimeout(maybeShowTypeHint, 1600);
     });
     emu.setAttribute("src", MAC_URL);
     // If it can't embed (cross-origin CORP), offer the new-tab path.
     setTimeout(function () { if (!loaded) { $("boot").classList.add("gone"); $("embedfail").classList.add("show"); } }, 12000);
+    setupEmulatorFocus();
+  }
+
+  // The emulator (mac.dialtone.live) listens for keydown/keyup on its OWN iframe
+  // window, so it only receives keystrokes while the iframe holds keyboard focus.
+  // Its canvas calls preventDefault() on mousedown, which suppresses the browser's
+  // default focus transfer into the iframe - so clicking the Mac moves the mouse
+  // but never the keyboard. We focus the iframe explicitly: on load, on any
+  // pointerdown over the stage, and whenever a card closes. A one-time hint nudges
+  // the user if focus hasn't landed yet.
+  var emuFocused = false;
+  function focusEmulator() {
+    var emu = $("emu");
+    if (!emu || !emu.classList.contains("loaded")) return;
+    // Don't steal focus while the user is in a card/form.
+    if (document.body.getAttribute("data-card") === "on") return;
+    try { emu.focus({ preventScroll: true }); } catch (e) { try { emu.focus(); } catch (e2) {} }
+    try { if (emu.contentWindow) emu.contentWindow.focus(); } catch (e) {}
+  }
+  function setupEmulatorFocus() {
+    var stage = $("stage");
+    if (!stage) return;
+    // Focus the Mac when the user interacts with the stage area.
+    stage.addEventListener("pointerdown", function () { setTimeout(focusEmulator, 0); }, true);
+    // The browser fires window 'blur' on the parent when focus moves INTO the
+    // iframe - use that as confirmation the Mac has keyboard focus, and hide the hint.
+    window.addEventListener("blur", function () {
+      if (document.activeElement === $("emu")) { emuFocused = true; hideTypeHint(); }
+    });
+    // If the user tabs/clicks back into the page chrome, allow re-focusing later.
+    window.addEventListener("focus", function () { emuFocused = false; });
+  }
+  function hideTypeHint() { var h = $("type-hint"); if (h) h.classList.remove("show"); }
+  function maybeShowTypeHint() {
+    var h = $("type-hint");
+    if (!h || isDemo) return;
+    if (!emuFocused && document.body.getAttribute("data-card") !== "on") h.classList.add("show");
   }
 
   // ---- Card show/hide --------------------------------------------------
@@ -464,7 +523,12 @@
     $("panel").classList.add("show");
     document.body.setAttribute("data-card", "on");
   }
-  function hideCard() { $("panel").classList.remove("show"); document.body.removeAttribute("data-card"); }
+  function hideCard() {
+    $("panel").classList.remove("show");
+    document.body.removeAttribute("data-card");
+    // Returning to the Mac: hand keyboard focus back so typing works immediately.
+    setTimeout(focusEmulator, 0);
+  }
 
   // ---- Launcher (login pill / status) ---------------------------------
   function setLauncher(html) { $("launcher").innerHTML = html; $("launcher").classList.remove("open"); menuOpen = false; }
@@ -764,6 +828,7 @@
     $("recip-refresh").addEventListener("click", loadRecipients);
     $("btn-send").addEventListener("click", doUpload);
     $("dz-file-x").addEventListener("click", function (e) { e.stopPropagation(); clearSendFile(); });
+    var th = $("type-hint"); if (th) th.addEventListener("click", function () { focusEmulator(); hideTypeHint(); });
     bindDropzone();
     if (isDemo) bindDemo();
   }
