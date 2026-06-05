@@ -235,6 +235,19 @@ public class DialtoneWebServer {
             }
         });
 
+        // OAuth popup landing: a tiny page that closes the popup so the /quick
+        // opener signs in inline (no second emulator boots). Explicit route so it
+        // never falls through to the SPA. Mirrors the /quick serving pattern.
+        app.get("/quick-auth", ctx -> {
+            try {
+                ctx.status(200);
+                ctx.contentType("text/html");
+                ctx.result(DialtoneWebServer.class.getResourceAsStream("/public/quick-auth.html"));
+            } catch (Exception e) {
+                ctx.status(500).result("Error loading page");
+            }
+        });
+
         // Root: the quick-start emulator experience is now the Dialtone landing.
         // (The previous React landing remains reachable at its own routes via the
         // SPA fallback, e.g. /dashboard, /setup.)

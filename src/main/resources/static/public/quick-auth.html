@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dialtone - signing in</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #00131f;
+    color: #9db4c7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+  .spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.18); border-top-color: #fc9d2c; animation: rot 0.8s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .msg { font-size: 13px; letter-spacing: 0.3px; }
+</style>
+</head>
+<body>
+  <div class="wrap"><div class="spin" id="spin"></div><div class="msg" id="msg">Finishing sign-in&hellip;</div></div>
+<script>
+/*
+ * OAuth popup landing page. The auth cookie is already set by the callback.
+ * If we're the OAuth popup, tell the opener (the /quick page) and close - the
+ * opener signs in inline, so no second emulator boots. If we were opened as a
+ * full-page redirect (popups blocked), just go to /quick.
+ */
+(function () {
+  "use strict";
+  var p = new URLSearchParams(location.search);
+  var ok = p.get("ok") === "1";
+  var error = p.get("error");
+  var opener = (window.opener && window.opener !== window) ? window.opener : null;
+
+  if (opener) {
+    try { opener.postMessage({ source: "dialtone-auth", ok: ok, error: error || null }, location.origin); } catch (e) {}
+    try { window.close(); } catch (e) {}
+    // If the browser refused to close the popup, don't boot an emulator here -
+    // just tell the user they can close it (the opener already signed them in).
+    setTimeout(function () {
+      var s = document.getElementById("spin"); if (s) s.style.display = "none";
+      document.getElementById("msg").textContent = ok
+        ? "You're signed in. You can close this window."
+        : "Sign-in didn't complete. You can close this window.";
+    }, 400);
+    return;
+  }
+
+  // Full-page (non-popup) flow: return to /quick, carrying any error inline.
+  location.replace(ok ? "/quick" : ("/quick?login_error=" + encodeURIComponent(error || "Sign-in didn't complete")));
+})();
+</script>
+</body>
+</html>

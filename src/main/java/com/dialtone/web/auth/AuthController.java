@@ -204,7 +204,10 @@ public class AuthController {
      */
     private String resolvePostLoginRedirect(String origin, String token) {
         if ("quick".equals(origin)) {
-            return "/quick";
+            // Lightweight popup-close page: it closes the OAuth popup so the /quick
+            // opener detects the new session and signs in inline - no second emulator
+            // boots. Falls back to /quick for the non-popup (full-page) flow.
+            return "/quick-auth?ok=1";
         }
         return "/auth/callback?token=" + token + "&success=true";
     }
@@ -223,8 +226,11 @@ public class AuthController {
      */
     private void redirectWithError(Context ctx, String errorMessage, String origin) {
         String encoded = java.net.URLEncoder.encode(errorMessage, java.nio.charset.StandardCharsets.UTF_8);
+        // For the quick surface, route errors through the same popup-close page so a
+        // failed login in the OAuth popup also closes cleanly (and surfaces the error
+        // in the opener) instead of booting a second emulator.
         String errorUrl = "quick".equals(origin)
-            ? "/quick?login_error=" + encoded
+            ? "/quick-auth?error=" + encoded
             : "/auth/callback?success=false&error=" + encoded;
         ctx.redirect(errorUrl);
     }

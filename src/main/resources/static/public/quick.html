@@ -601,6 +601,23 @@
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeMenu(); } });
 
+  // The OAuth popup (quick-auth.html) posts here when it finishes, so we sign in
+  // inline - the page (and its emulator) keep running, no reload, no second Mac.
+  // pollCookie remains a fallback for browsers that drop the message.
+  window.addEventListener("message", function (e) {
+    if (e.origin !== location.origin) return;
+    var d = e.data;
+    if (!d || d.source !== "dialtone-auth") return;
+    clearInterval(pollTimer);
+    if (d.ok) {
+      getMe().then(route).catch(function () { renderSignedOut(); });
+    } else {
+      renderSignedOut();
+      openAuthCard();
+      errBox("err-auth", d.error || "Sign-in didn't complete. Please try again.");
+    }
+  });
+
   // ---- Routing ---------------------------------------------------------
   function route(me) {
     currentMe = me;
