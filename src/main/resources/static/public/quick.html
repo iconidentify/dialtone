@@ -138,9 +138,19 @@
     -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); animation: pop 0.18s var(--ease) both; }
   #launcher.open #menu { display: block; }
   @keyframes pop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  .menu-head { padding: 9px 11px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px; }
+  .menu-head { padding: 9px 11px 5px; }
   .menu-head .who { font-size: 11px; color: var(--muted); }
-  .menu-head .sn { font-weight: 800; font-size: 15px; }
+  /* the "many" in many-to-one: every screen name this login unlocks */
+  .menu-sns { padding: 2px 5px 2px; }
+  .menu-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 2px 6px 6px; }
+  .menu-sn { display: flex; align-items: center; gap: 9px; padding: 7px 6px; border-radius: 8px; }
+  .menu-sn-av { width: 22px; height: 22px; border-radius: 50%; flex: 0 0 auto;
+    background: linear-gradient(180deg, var(--orange-lt), var(--orange-dk)); color: var(--ink);
+    font-weight: 800; font-size: 11px; display: grid; place-items: center; }
+  .menu-sn-name { font-weight: 700; font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .menu-sn-tag { font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--orange);
+    border: 1px solid rgba(252,157,44,0.4); border-radius: 999px; padding: 2px 7px; flex: 0 0 auto; }
+  .menu-sep { height: 1px; background: rgba(255,255,255,0.08); margin: 6px 6px; }
   .menu-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
     border: 0; background: none; color: var(--paper); font: inherit; font-size: 14px;
     padding: 10px 11px; border-radius: 9px; cursor: pointer; }
@@ -552,6 +562,13 @@
     var sns = screennamesOf(me);
     var primary = sns[0] ? sns[0].screenname : nameOf(me);
     var canAdd = sns.length < 2;
+    var snRows = sns.map(function (s, i) {
+      return '<div class="menu-sn">' +
+        '<span class="menu-sn-av">' + s.screenname.charAt(0).toUpperCase() + '</span>' +
+        '<span class="menu-sn-name">' + s.screenname + '</span>' +
+        (i === 0 && sns.length > 1 ? '<span class="menu-sn-tag">primary</span>' : '') +
+      '</div>';
+    }).join('');
     setLauncher(
       '<button class="userchip" id="pill-user" type="button" aria-haspopup="true">' +
         '<span class="av">' + primary.charAt(0).toUpperCase() + '</span>' +
@@ -559,9 +576,11 @@
         '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>' +
       '</button>' +
       '<div id="menu" role="menu">' +
-        '<div class="menu-head"><div class="who">Signed in as @' + nameOf(me) + '</div><div class="sn">' + primary + '</div></div>' +
+        '<div class="menu-head"><div class="who">Signed in as @' + nameOf(me) + '</div></div>' +
+        '<div class="menu-sns"><div class="menu-label">Your screen name' + (sns.length > 1 ? 's' : '') + '</div>' + snRows + '</div>' +
+        '<div class="menu-sep"></div>' +
         '<button class="menu-item" id="mi-send" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Send a file to AOL</button>' +
-        (canAdd ? '<button class="menu-item" id="mi-add" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add another screen name</button>' : '') +
+        (canAdd ? '<button class="menu-item" id="mi-add" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Create another screen name</button>' : '') +
         '<button class="menu-item" id="mi-newtab" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open the Mac in a new tab</button>' +
         '<button class="menu-item danger" id="mi-signout" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>' +
       '</div>'
@@ -638,7 +657,8 @@
   // OAuth (X, Discord): popup + cookie poll, full-page redirect fallback.
   function startOAuth(provider) {
     if (isDemo) { renderSigningIn(); setTimeout(function () { route(demoMe); }, 700); return; }
-    var url = "/api/auth/" + provider + "/login";
+    // origin=quick so the provider callback returns here (not the legacy dashboard).
+    var url = "/api/auth/" + provider + "/login?origin=quick";
     var w = 520, h = 680, x = window.screenX + Math.max(0, (window.outerWidth - w) / 2), y = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
     var popup = window.open(url, "dialtone_" + provider + "_login", "width=" + w + ",height=" + h + ",left=" + x + ",top=" + y);
     if (!popup || popup.closed || typeof popup.closed === "undefined") { window.location.href = url; return; }
@@ -697,6 +717,10 @@
   var addMode = false;
   function renderNeedScreenname(me) {
     addMode = false;
+    // New user, no screen name yet: clear the corner (no stuck "Signing in..."
+    // spinner) - the card itself shows who you're signed in as. The chip appears
+    // once a screen name exists.
+    setLauncher("");
     showCard("s-needsn");
     $("hi-user").textContent = "Signed in as @" + nameOf(me);
     $("s-needsn").querySelector(".headline").innerHTML = "Pick your<br/>screen name";
@@ -846,11 +870,12 @@
       var b = e.target.closest("button"); if (!b) return;
       var s = b.getAttribute("data-demo");
       var ready = { providerUsername: "neo", screennames: [{ screenname: "SkyRunner98", isPrimary: true }] };
+      var readyMulti = { providerUsername: "neo", screennames: [{ screenname: "SkyRunner98", isPrimary: true }, { screenname: "Neo1999" }] };
       if (s === "signedout") { demoMe = { providerUsername: "neo", screennames: [] }; renderSignedOut(); }
       else if (s === "auth") { openAuthCard(); }
       else if (s === "needsn") { demoMe = { providerUsername: "neo", screennames: [] }; renderNeedScreenname(demoMe); }
       else if (s === "ready") { demoMe = ready; renderReady(ready); }
-      else if (s === "menu") { demoMe = ready; renderReady(ready); toggleMenu(); }
+      else if (s === "menu") { demoMe = readyMulti; renderReady(readyMulti); toggleMenu(); }
       else if (s === "send") { demoMe = ready; currentMe = ready; openSend(); }
       else if (s === "sent") { demoMe = ready; sendFile = { name: "vacation.jpg", size: 184320 }; sendRecip = "SkyRunner98"; renderSent(); }
     });

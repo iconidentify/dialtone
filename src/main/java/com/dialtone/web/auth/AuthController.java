@@ -58,6 +58,7 @@ public class AuthController {
      */
     public void initiateXLogin(Context ctx) {
         try {
+            rememberLoginOrigin(ctx);
             String authUrl = xAuthService.getAuthorizationUrl();
             LoggerUtil.debug("Redirecting to X OAuth: " + authUrl);
             ctx.redirect(authUrl);
@@ -73,6 +74,9 @@ public class AuthController {
      * GET /api/auth/x/callback
      */
     public void handleXCallback(Context ctx) {
+        // Read (and clear) the surface that started the login so both success and
+        // error paths return there (e.g. /quick) instead of the legacy callback.
+        String origin = consumeLoginOrigin(ctx);
         try {
             String code = ctx.queryParam("code");
             String state = ctx.queryParam("state");
@@ -87,15 +91,15 @@ public class AuthController {
             User user = xAuthService.handleCallback(code, state);
 
             // Complete authentication flow
-            completeAuthentication(ctx, user, "X");
+            completeAuthentication(ctx, user, "X", origin);
 
         } catch (OAuthBaseService.AuthenticationException e) {
             LoggerUtil.warn("X OAuth authentication failed: " + e.getMessage());
-            redirectWithError(ctx, e.getMessage());
+            redirectWithError(ctx, e.getMessage(), origin);
 
         } catch (Exception e) {
             LoggerUtil.error("Unexpected error in X OAuth callback: " + e.getMessage());
-            redirectWithError(ctx, "An unexpected error occurred during authentication");
+            redirectWithError(ctx, "An unexpected error occurred during authentication", origin);
         }
     }
 
@@ -110,6 +114,7 @@ public class AuthController {
                 return;
             }
 
+            rememberLoginOrigin(ctx);
             String authUrl = discordAuthService.getAuthorizationUrl();
             LoggerUtil.debug("Redirecting to Discord OAuth: " + authUrl);
             ctx.redirect(authUrl);
@@ -125,6 +130,9 @@ public class AuthController {
      * GET /api/auth/discord/callback
      */
     public void handleDiscordCallback(Context ctx) {
+        // Read (and clear) the surface that started the login so both success and
+        // error paths return there (e.g. /quick) instead of the legacy callback.
+        String origin = consumeLoginOrigin(ctx);
         try {
             if (!discordAuthService.isEnabled()) {
                 ctx.status(503).json(SharedErrorResponse.serverError("Discord login is not configured"));
@@ -144,15 +152,15 @@ public class AuthController {
             User user = discordAuthService.handleCallback(code, state);
 
             // Complete authentication flow
-            completeAuthentication(ctx, user, "Discord");
+            completeAuthentication(ctx, user, "Discord", origin);
 
         } catch (OAuthBaseService.AuthenticationException e) {
             LoggerUtil.warn("Discord OAuth authentication failed: " + e.getMessage());
-            redirectWithError(ctx, e.getMessage());
+            redirectWithError(ctx, e.getMessage(), origin);
 
         } catch (Exception e) {
             LoggerUtil.error("Unexpected error in Discord OAuth callback: " + e.getMessage());
-            redirectWithError(ctx, "An unexpected error occurred during authentication");
+            redirectWithError(ctx, "An unexpected error occurred during authentication", origin);
         }
     }
 
@@ -437,6 +445,48 @@ public class AuthController {
         cookie.setSecure(secure);
         cookie.setMaxAge(maxAgeSeconds);
         cookie.setSameSite(SameSite.STRICT);
+        return cookie;
+    }
+
+    /** Cookie that carries the originating surface across the OAuth round-trip. */
+    private static final String LOGIN_ORIGIN_COOKIE = "dt_login_origin";
+    private static final int LOGIN_ORIGIN_MAX_AGE_SECONDS = 600; // 10 minutes
+
+    /**
+     * Remembers the surface that started an OAuth login (e.g. {@code ?origin=quick})
+     * so the provider callback can return there. Uses a short-lived SameSite=Lax
+     * cookie - Lax (unlike the Strict auth cookie) is sent on the top-level GET
+     * navigation back from the provider, which is cross-site. Only whitelisted
+     * origins are stored to avoid smuggling arbitrary values into the redirect.
+     */
+    private void rememberLoginOrigin(Context ctx) {
+        String origin = ctx.queryParam("origin");
+        if (!"quick".equals(origin)) {
+            return;
+        }
+        ctx.cookie(buildLoginOriginCookie(ctx, origin, LOGIN_ORIGIN_MAX_AGE_SECONDS));
+    }
+
+    /**
+     * Returns the remembered login origin (or null) and clears the cookie so it
+     * can't leak into a later, unrelated login.
+     */
+    private String consumeLoginOrigin(Context ctx) {
+        String origin = ctx.cookie(LOGIN_ORIGIN_COOKIE);
+        if (origin == null || origin.isEmpty()) {
+            return null;
+        }
+        ctx.cookie(buildLoginOriginCookie(ctx, "", 0));
+        return "quick".equals(origin) ? origin : null;
+    }
+
+    private Cookie buildLoginOriginCookie(Context ctx, String value, int maxAgeSeconds) {
+        Cookie cookie = new Cookie(LOGIN_ORIGIN_COOKIE, value);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setSecure("https".equalsIgnoreCase(ctx.scheme()));
+        cookie.setMaxAge(maxAgeSeconds);
+        cookie.setSameSite(SameSite.LAX);
         return cookie;
     }
 }
