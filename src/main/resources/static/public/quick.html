@@ -11,9 +11,10 @@
   /*
    * Dialtone "quick" landing.
    * The Mac OS 7 / AOL 3.0 emulator (mac.dialtone.live) auto-boots and fills the
-   * screen - the computer IS the page. A small, tasteful login pill floats on top;
-   * it expands into a compact card only when there's something to do (pick a screen
-   * name, send a file). Self-contained: no build step, talks to same-origin /api.
+   * screen - the computer IS the page. A subtle sign-in line tucks under the
+   * Dialtone logo (top-left), showing the screen name once signed in; it expands
+   * into a compact card only when there's something to do (pick a screen name,
+   * send a file). Self-contained: no build step, talks to same-origin /api.
    *
    * NOTE: the emulator only embeds on a *.dialtone.live origin (mac.dialtone.live
    * sends Cross-Origin-Resource-Policy: same-site). On other origins the boot
@@ -96,43 +97,41 @@
   #type-hint svg { width: 16px; height: 16px; opacity: 0.85; }
   @keyframes hintPulse { 0%,100% { box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6); } 50% { box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6), 0 0 0 4px rgba(252,157,44,0.12); } }
 
-  /* ---- Brand (top-left) ---- */
-  #brand { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 18px;
-    display: flex; align-items: center; gap: 10px; z-index: 30; text-decoration: none; color: var(--paper); user-select: none; }
+  /* ---- Top-left lockup: logo + the sign-in / screen-name line beneath it ---- */
+  #topleft { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 18px; z-index: 45;
+    display: flex; flex-direction: column; gap: 3px; }
+  #brand { display: inline-flex; align-items: center; gap: 10px; width: max-content;
+    text-decoration: none; color: var(--paper); user-select: none; }
   #brand img { width: 26px; height: 26px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
-  #brand .name { font-weight: 800; font-size: 17px; }
+  #brand .name { font-weight: 800; font-size: 17px; letter-spacing: -0.2px; }
   #brand .dot { color: var(--orange); }
   @media (max-width: 520px) { #brand .name { font-size: 16px; } }
 
-  /* ---- Floating login pill / status indicator (top-right) ---- */
-  #launcher { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 16px; z-index: 45; }
-  .pill {
-    display: inline-flex; align-items: center; gap: 9px;
-    border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 14px;
-    padding: 11px 16px; border-radius: 999px; color: var(--ink);
-    background: linear-gradient(180deg, var(--orange-lt), var(--orange) 55%, var(--orange-dk));
-    box-shadow: 0 10px 26px -8px rgba(252,157,44,0.6), 0 0 0 1px rgba(255,200,100,0.5) inset;
-    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-    transition: transform 0.12s var(--ease), box-shadow 0.2s var(--ease);
-  }
-  .pill:hover { transform: translateY(-1px); box-shadow: 0 14px 34px -8px rgba(252,157,44,0.75), 0 0 0 1px rgba(255,200,100,0.6) inset; }
-  .pill:active { transform: translateY(0) scale(0.98); }
-  .pill svg { width: 17px; height: 17px; }
-  /* signed-in variant: dark glass chip */
-  .pill.user {
-    background: linear-gradient(165deg, rgba(10,38,62,0.9), rgba(0,18,33,0.94));
-    color: var(--paper); box-shadow: 0 12px 30px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1) inset;
-  }
-  .pill .av { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto;
+  /* The sign-in / status line sits directly under the wordmark (indented past
+     the logo so it reads as one lockup). Subtle by default - the Mac is the star. */
+  #launcher { position: relative; padding-left: 36px; min-height: 17px; }
+  .signlink { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 12px; font-weight: 600; color: var(--muted); padding: 1px 0; letter-spacing: 0.2px;
+    transition: color 0.15s var(--ease); }
+  .signlink:hover { color: var(--paper); }
+  .signlink.muted { cursor: default; }
+  .signlink .arrow { color: var(--orange); font-weight: 700; transition: transform 0.15s var(--ease); }
+  .signlink:hover .arrow { transform: translateX(2px); }
+  .signlink .mini-spin { width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.18); border-top-color: var(--orange); animation: rot 0.8s linear infinite; }
+  /* signed-in: compact screen-name chip that opens the menu */
+  .userchip { display: inline-flex; align-items: center; gap: 7px; border: 0; background: none; cursor: pointer;
+    font: inherit; color: var(--paper); padding: 1px 0; max-width: 60vw; }
+  .userchip .av { width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto;
     background: linear-gradient(180deg, var(--orange-lt), var(--orange-dk)); color: var(--ink);
-    font-weight: 800; font-size: 12px; display: grid; place-items: center; }
-  .pill .chev { width: 14px; height: 14px; opacity: 0.7; transition: transform 0.2s var(--ease); }
-  #launcher.open .pill .chev { transform: rotate(180deg); }
-  .pill .mini-spin { width: 15px; height: 15px; border-radius: 50%;
-    border: 2px solid rgba(0,30,55,0.3); border-top-color: var(--ink); animation: rot 0.8s linear infinite; }
+    font-weight: 800; font-size: 10px; display: grid; place-items: center; }
+  .userchip .sn { font-size: 13px; font-weight: 700; letter-spacing: 0.1px;
+    max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .userchip .chev { width: 12px; height: 12px; flex: 0 0 auto; opacity: 0.65; transition: transform 0.2s var(--ease); }
+  #launcher.open .userchip .chev { transform: rotate(180deg); }
 
-  /* dropdown menu under the user pill */
-  #menu { position: absolute; top: calc(100% + 8px); right: 0; min-width: 210px;
+  /* dropdown menu - opens below-left, under the chip */
+  #menu { position: absolute; top: calc(100% + 8px); left: 0; min-width: 210px;
     background: linear-gradient(165deg, rgba(10,38,62,0.95), rgba(0,18,33,0.97));
     border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 7px;
     box-shadow: 0 22px 50px -12px rgba(0,0,0,0.7); display: none;
@@ -257,7 +256,7 @@
   @media (max-width: 560px) {
     #panel { left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%; }
     .card { border-radius: 22px 22px 0 0; padding: 22px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 86vh; }
-    #launcher { right: 12px; }
+    #topleft { left: 12px; }
     #menu { min-width: 220px; }
     .headline { font-size: 21px; }
   }
@@ -294,14 +293,15 @@
     </div>
   </div>
 
-  <!-- Brand -->
-  <a id="brand" href="/" title="Dialtone">
-    <img src="/favicon.svg" alt="" />
-    <span class="name">Dialtone<span class="dot">.</span></span>
-  </a>
-
-  <!-- Floating login pill / status indicator -->
-  <div id="launcher"><!-- filled by JS --></div>
+  <!-- Top-left lockup: logo + a subtle sign-in / screen-name line beneath it -->
+  <div id="topleft">
+    <a id="brand" href="/" title="Dialtone">
+      <img src="/favicon.svg" alt="" />
+      <span class="name">Dialtone<span class="dot">.</span></span>
+    </a>
+    <!-- sign-in / status line (filled by JS) -->
+    <div id="launcher"><!-- filled by JS --></div>
+  </div>
 
   <!-- Demo controls (?demo=1 / file://) -->
   <div id="demobar">
@@ -530,22 +530,20 @@
     setTimeout(focusEmulator, 0);
   }
 
-  // ---- Launcher (login pill / status) ---------------------------------
+  // ---- Launcher (sign-in line / screen-name status, under the logo) ---
   function setLauncher(html) { $("launcher").innerHTML = html; $("launcher").classList.remove("open"); menuOpen = false; }
 
   function renderSignedOut() {
     hideCard();
     setLauncher(
-      '<button class="pill" id="pill-signin" type="button">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>' +
-        'Sign in to get a screen name</button>'
+      '<button class="signlink" id="pill-signin" type="button">Sign in <span class="arrow">&rsaquo;</span></button>'
     );
     $("pill-signin").addEventListener("click", openAuthCard);
   }
 
   function renderSigningIn() {
     hideCard();
-    setLauncher('<span class="pill"><span class="mini-spin"></span>Signing in&hellip;</span>');
+    setLauncher('<span class="signlink muted"><span class="mini-spin"></span> Signing in&hellip;</span>');
   }
 
   function renderReady(me) {
@@ -555,9 +553,9 @@
     var primary = sns[0] ? sns[0].screenname : nameOf(me);
     var canAdd = sns.length < 2;
     setLauncher(
-      '<button class="pill user" id="pill-user" type="button" aria-haspopup="true">' +
+      '<button class="userchip" id="pill-user" type="button" aria-haspopup="true">' +
         '<span class="av">' + primary.charAt(0).toUpperCase() + '</span>' +
-        '<span>' + primary + '</span>' +
+        '<span class="sn">' + primary + '</span>' +
         '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>' +
       '</button>' +
       '<div id="menu" role="menu">' +
