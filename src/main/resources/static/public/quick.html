@@ -11,9 +11,8 @@
   /*
    * Dialtone "quick" landing.
    * The Mac OS 7 / AOL 3.0 emulator (mac.dialtone.live) auto-boots and fills the
-   * screen - the computer IS the page. A subtle sign-in line tucks under the
-   * Dialtone logo (top-left), showing signed-in state after auth; the account
-   * console opens separately for screen names and passwords. Self-contained: no
+   * screen - the computer IS the page. A logo-only account launcher stays in the
+   * top-left; clicking it opens sign-in or account details. Self-contained: no
    * build step, talks to same-origin /api.
    *
    * NOTE: the emulator only embeds on a *.dialtone.live origin (mac.dialtone.live
@@ -97,20 +96,17 @@
   #type-hint svg { width: 16px; height: 16px; opacity: 0.85; }
   @keyframes hintPulse { 0%,100% { box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6); } 50% { box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6), 0 0 0 4px rgba(252,157,44,0.12); } }
 
-  /* ---- Top-left lockup: logo + the sign-in / screen-name line beneath it ---- */
+  /* ---- Top-left account launcher: logo only ---- */
   #topleft { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 18px; z-index: 45;
-    display: flex; flex-direction: column; gap: 3px; }
-  #brand { display: inline-flex; align-items: center; gap: 10px; width: max-content;
-    text-decoration: none; color: var(--paper); user-select: none; }
-  #brand img { width: 26px; height: 26px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
-  #brand .name { font-weight: 800; font-size: 17px; letter-spacing: -0.2px; }
-  #brand .dot { color: var(--orange); }
-  @media (max-width: 520px) { #brand .name { font-size: 16px; } }
-
-  /* The sign-in / status line sits directly under the wordmark (indented past
-     the logo so it reads as one lockup). Subtle by default - the Mac is the star. */
-  #accountbar { display: flex; align-items: center; gap: 8px; padding-left: 36px; min-height: 20px; }
-  #launcher { position: relative; min-height: 17px; }
+    width: 38px; height: 38px; }
+  #brand { display: grid; place-items: center; width: 38px; height: 38px; border: 0;
+    border-radius: 10px; background: transparent; color: var(--paper); cursor: pointer;
+    user-select: none; padding: 0; }
+  #brand:hover, #brand[aria-expanded="true"] { background: rgba(255,255,255,0.07); }
+  #brand:focus-visible { outline: 2px solid rgba(252,157,44,0.85); outline-offset: 2px; }
+  #brand img { width: 30px; height: 30px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+  #accountbar { position: absolute; top: 46px; left: 0; width: 0; height: 0; min-height: 0; padding: 0; }
+  #launcher { position: relative; width: 0; height: 0; min-height: 0; }
   .signlink { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; cursor: pointer;
     font: inherit; font-size: 12px; font-weight: 600; color: var(--muted); padding: 1px 0; letter-spacing: 0.2px;
     transition: color 0.15s var(--ease); }
@@ -120,14 +116,6 @@
   .signlink:hover .arrow { transform: translateX(2px); }
   .signlink .mini-spin { width: 12px; height: 12px; border-radius: 50%;
     border: 2px solid rgba(255,255,255,0.18); border-top-color: var(--orange); animation: rot 0.8s linear infinite; }
-  .consolelink { display: none; align-items: center; gap: 5px; min-height: 20px;
-    padding: 3px 8px; border-radius: 999px; text-decoration: none;
-    border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06);
-    color: var(--muted); font-size: 11px; font-weight: 700; line-height: 1;
-    transition: color 0.15s var(--ease), background 0.15s var(--ease), border-color 0.15s var(--ease); }
-  .consolelink.show { display: inline-flex; }
-  .consolelink:hover { color: var(--paper); background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.22); }
-  .consolelink svg { width: 11px; height: 11px; opacity: 0.8; flex: 0 0 auto; }
   /* signed-in: compact screen-name chip that opens the menu */
   .userchip { display: inline-flex; align-items: center; gap: 7px; border: 0; background: none; cursor: pointer;
     font: inherit; color: var(--paper); padding: 1px 0; max-width: 60vw; }
@@ -139,8 +127,8 @@
   .userchip .chev { width: 12px; height: 12px; flex: 0 0 auto; opacity: 0.65; transition: transform 0.2s var(--ease); }
   #launcher.open .userchip .chev { transform: rotate(180deg); }
 
-  /* dropdown menu - opens below-left, under the chip */
-  #menu { position: absolute; top: calc(100% + 8px); left: 0; min-width: 210px;
+  /* dropdown menu - opens from the logo */
+  #menu { position: absolute; top: 0; left: 0; min-width: 230px;
     background: linear-gradient(165deg, rgba(10,38,62,0.95), rgba(0,18,33,0.97));
     border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 7px;
     box-shadow: 0 22px 50px -12px rgba(0,0,0,0.7); display: none;
@@ -163,7 +151,7 @@
   .menu-sep { height: 1px; background: rgba(255,255,255,0.08); margin: 6px 6px; }
   .menu-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
     border: 0; background: none; color: var(--paper); font: inherit; font-size: 14px;
-    padding: 10px 11px; border-radius: 9px; cursor: pointer; }
+    padding: 10px 11px; border-radius: 9px; cursor: pointer; text-decoration: none; }
   .menu-item:hover { background: rgba(255,255,255,0.07); }
   .menu-item svg { width: 16px; height: 16px; opacity: 0.85; flex: 0 0 auto; }
   .menu-item.danger { color: #ffb4b4; }
@@ -314,19 +302,13 @@
     </div>
   </div>
 
-  <!-- Top-left lockup: logo + a subtle sign-in / screen-name line beneath it -->
+  <!-- Top-left account launcher: logo only; click for sign-in or account details -->
   <div id="topleft">
-    <a id="brand" href="/" title="Dialtone">
+    <button id="brand" type="button" title="Dialtone account" aria-label="Dialtone account" aria-haspopup="true" aria-expanded="false">
       <img src="/favicon.svg" alt="" />
-      <span class="name">Dialtone<span class="dot">.</span></span>
-    </a>
-    <!-- sign-in / status line (filled by JS) + account console entry -->
+    </button>
     <div id="accountbar">
       <div id="launcher"><!-- filled by JS --></div>
-      <a id="console-link" class="consolelink" href="/dashboard" target="_blank" rel="noopener" title="Open account console">
-        Console
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      </a>
     </div>
   </div>
 
@@ -489,7 +471,7 @@
     return raw.map(function (s) { return typeof s === "string" ? { screenname: s } : s; });
   }
 
-  var currentMe = null, menuOpen = false;
+  var currentMe = null, menuOpen = false, accountState = "loading", authPopup = null;
 
   // ---- Emulator (auto-boot) -------------------------------------------
   function bootEmulator() {
@@ -545,6 +527,7 @@
 
   // ---- Card show/hide --------------------------------------------------
   function showCard(id) {
+    closeMenu();
     ["s-auth", "s-needsn", "s-send", "s-sent"].forEach(function (s) { $(s).hidden = (s !== id); });
     $("panel").classList.add("show");
     document.body.setAttribute("data-card", "on");
@@ -556,26 +539,45 @@
     setTimeout(focusEmulator, 0);
   }
 
-  // ---- Launcher (sign-in line / screen-name status, under the logo) ---
-  function setLauncher(html) { $("launcher").innerHTML = html; $("launcher").classList.remove("open"); menuOpen = false; }
-  function showConsoleLink(show) { $("console-link").classList.toggle("show", !!show); }
+  // ---- Logo account launcher -----------------------------------------
+  function setBrandExpanded(expanded) {
+    var brand = $("brand");
+    if (brand) brand.setAttribute("aria-expanded", expanded ? "true" : "false");
+  }
+  function setAccountState(state) {
+    accountState = state;
+    var brand = $("brand");
+    if (brand) brand.setAttribute("data-account-state", state);
+  }
+  function setLauncher(html) { $("launcher").innerHTML = html; closeMenu(); }
+  function showConsoleLink(show) { /* retained for older render paths; console now lives inside the logo menu */ }
+  function openAccountDetail() {
+    if (accountState === "ready") {
+      toggleMenu();
+      return;
+    }
+    openAuthCard();
+    if (accountState === "signing") {
+      errBox("err-auth", "Finish sign-in in the popup. You'll return here automatically.");
+    }
+  }
 
   function renderSignedOut() {
+    setAccountState("signedout");
     hideCard();
     showConsoleLink(false);
-    setLauncher(
-      '<button class="signlink" id="pill-signin" type="button">Sign in <span class="arrow">&rsaquo;</span></button>'
-    );
-    $("pill-signin").addEventListener("click", openAuthCard);
+    setLauncher("");
   }
 
   function renderSigningIn() {
+    setAccountState("signing");
     hideCard();
     showConsoleLink(false);
-    setLauncher('<span class="signlink muted"><span class="mini-spin"></span> Signing in&hellip;</span>');
+    setLauncher("");
   }
 
   function renderReady(me) {
+    setAccountState("ready");
     currentMe = me;
     hideCard();
     showConsoleLink(true);
@@ -588,46 +590,68 @@
       '</div>';
     }).join('') : '<div class="menu-empty">Open the console to create a screen name.</div>';
     setLauncher(
-      '<button class="userchip" id="pill-user" type="button" aria-haspopup="true">' +
-        '<span class="av">&#10003;</span>' +
-        '<span class="sn">Signed in</span>' +
-        '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>' +
-      '</button>' +
       '<div id="menu" role="menu">' +
         '<div class="menu-head"><div class="who">Signed in</div></div>' +
         '<div class="menu-sns"><div class="menu-label">Your screen name' + (sns.length > 1 ? 's' : '') + '</div>' + snRows + '</div>' +
         '<div class="menu-sep"></div>' +
+        '<a class="menu-item" id="mi-console" role="menuitem" href="/dashboard" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>Console</a>' +
         '<button class="menu-item" id="mi-send" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Send a file to AOL</button>' +
         '<button class="menu-item danger" id="mi-signout" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>' +
       '</div>'
     );
-    $("pill-user").addEventListener("click", toggleMenu);
     $("mi-send").addEventListener("click", function () { closeMenu(); openSend(); });
     $("mi-signout").addEventListener("click", function () { closeMenu(); doSignOut(); });
   }
 
-  function toggleMenu() { menuOpen = !menuOpen; $("launcher").classList.toggle("open", menuOpen); }
-  function closeMenu() { menuOpen = false; $("launcher").classList.remove("open"); }
+  function toggleMenu() {
+    menuOpen = !menuOpen;
+    $("launcher").classList.toggle("open", menuOpen);
+    setBrandExpanded(menuOpen);
+  }
+  function closeMenu() {
+    menuOpen = false;
+    var launcher = $("launcher");
+    if (launcher) launcher.classList.remove("open");
+    setBrandExpanded(false);
+  }
 
   // close menu on outside click / Esc
   document.addEventListener("click", function (e) {
-    if (menuOpen && !$("launcher").contains(e.target)) closeMenu();
+    if (menuOpen && !$("topleft").contains(e.target)) closeMenu();
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeMenu(); } });
 
-  // Backward compatibility for old OAuth popup flows. Current /quick login uses
-  // a full-page redirect back here, but an already-open popup can still post this.
-  window.addEventListener("message", function (e) {
-    if (e.origin !== location.origin) return;
-    var d = e.data;
-    if (!d || d.source !== "dialtone-auth") return;
+  function finishOAuthResult(d) {
     clearInterval(pollTimer);
+    if (authPopup) {
+      try { if (!authPopup.closed) authPopup.close(); } catch (e) {}
+      authPopup = null;
+    }
     if (d.ok) {
-      getMe().then(route).catch(function () { renderSignedOut(); });
+      setTimeout(function () {
+        getMe().then(route).catch(function () { renderSignedOut(); });
+      }, 100);
     } else {
       renderSignedOut();
       openAuthCard();
       errBox("err-auth", d.error || "Sign-in didn't complete. Please try again.");
+    }
+  }
+
+  window.addEventListener("message", function (e) {
+    if (e.origin !== location.origin) return;
+    var d = e.data;
+    if (!d || d.source !== "dialtone-auth") return;
+    finishOAuthResult(d);
+  });
+  window.addEventListener("storage", function (e) {
+    if (e.key !== "dialtone_auth_result" || !e.newValue) return;
+    try {
+      var d = JSON.parse(e.newValue);
+      if (!d || d.source !== "dialtone-auth" || !d.ts || Date.now() - d.ts > 10 * 60 * 1000) return;
+      finishOAuthResult(d);
+    } catch (ex) {
+      // Ignore unrelated storage writes.
     }
   });
 
@@ -682,13 +706,38 @@
     $("email").value = ""; validateEmail();
   }
 
-  // OAuth (X, Discord): full-page redirect back to /quick.
+  // OAuth (X, Discord): popup + cookie polling so the emulator page never navigates away.
   function startOAuth(provider) {
     if (isDemo) { renderSigningIn(); setTimeout(function () { route(demoMe); }, 700); return; }
-    // origin=quick so the provider callback returns here (not the legacy dashboard).
-    var url = "/api/auth/" + provider + "/login?origin=quick";
+    var url = "/api/auth/" + provider + "/login?origin=quick&popup=1";
+    try { localStorage.removeItem("dialtone_auth_result"); } catch (e) {}
+    var popup = null;
+    try {
+      popup = window.open("about:blank", "dialtone-auth", "width=520,height=720,menubar=no,toolbar=no,location=yes,status=no,scrollbars=yes,resizable=yes");
+    } catch (e) {}
+    if (!popup) {
+      openAuthCard();
+      errBox("err-auth", "Your browser blocked the sign-in popup. Allow popups for Dialtone and try again.");
+      return;
+    }
+    authPopup = popup;
     renderSigningIn();
-    window.location.href = url;
+    try {
+      popup.location.href = url;
+      popup.focus();
+    } catch (e) {
+      openAuthCard();
+      errBox("err-auth", "Could not open the sign-in window. Please try again.");
+      try { popup.close(); } catch (e2) {}
+      authPopup = null;
+      return;
+    }
+    pollCookie(function () {
+      if (authPopup) {
+        try { if (!authPopup.closed) authPopup.close(); } catch (e) {}
+        authPopup = null;
+      }
+    });
   }
 
   // Poll for the auth cookie after an email magic link is clicked in the same
@@ -848,6 +897,7 @@
 
   // ---- Wire up ---------------------------------------------------------
   function bind() {
+    $("brand").addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openAccountDetail(); });
     $("sn").addEventListener("input", validateForm);
     $("pw").addEventListener("input", validateForm);
     $("sn-form").addEventListener("submit", async function (e) {

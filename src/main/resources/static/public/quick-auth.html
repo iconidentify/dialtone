@@ -19,8 +19,8 @@
 /*
  * OAuth popup landing page. The auth cookie is already set by the callback.
  * If we're the OAuth popup, tell the opener (the /quick page) and close - the
- * opener signs in inline, so no second emulator boots. If we were opened as a
- * full-page redirect (popups blocked), just go to /quick.
+ * opener signs in inline, so no second emulator boots. If an older full-page
+ * quick flow lands here, just go back to /quick.
  */
 (function () {
   "use strict";
@@ -28,9 +28,12 @@
   var ok = p.get("ok") === "1";
   var error = p.get("error");
   var opener = (window.opener && window.opener !== window) ? window.opener : null;
+  var result = { source: "dialtone-auth", ok: ok, error: error || null, ts: Date.now() };
+
+  try { localStorage.setItem("dialtone_auth_result", JSON.stringify(result)); } catch (e) {}
 
   if (opener) {
-    try { opener.postMessage({ source: "dialtone-auth", ok: ok, error: error || null }, location.origin); } catch (e) {}
+    try { opener.postMessage(result, location.origin); } catch (e) {}
     try { window.close(); } catch (e) {}
     // If the browser refused to close the popup, don't boot an emulator here -
     // just tell the user they can close it (the opener already signed them in).

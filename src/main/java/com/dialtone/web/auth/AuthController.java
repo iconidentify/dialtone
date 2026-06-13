@@ -77,13 +77,19 @@ public class AuthController {
         // Read (and clear) the surface that started the login so both success and
         // error paths return there (e.g. /quick) instead of the legacy callback.
         String origin = consumeLoginOrigin(ctx);
+        boolean popup = consumeLoginPopup(ctx);
         try {
+            String providerError = ctx.queryParam("error");
+            if (providerError != null && !providerError.isBlank()) {
+                redirectWithError(ctx, providerError, origin, popup);
+                return;
+            }
+
             String code = ctx.queryParam("code");
             String state = ctx.queryParam("state");
 
             if (code == null || state == null) {
-                ctx.status(400).json(SharedErrorResponse.badRequest(
-                    "Missing authorization code or state parameter"));
+                redirectWithError(ctx, "Missing authorization code or state parameter", origin, popup);
                 return;
             }
 
@@ -91,15 +97,15 @@ public class AuthController {
             User user = xAuthService.handleCallback(code, state);
 
             // Complete authentication flow
-            completeAuthentication(ctx, user, "X", origin);
+            completeAuthentication(ctx, user, "X", origin, popup);
 
         } catch (OAuthBaseService.AuthenticationException e) {
             LoggerUtil.warn("X OAuth authentication failed: " + e.getMessage());
-            redirectWithError(ctx, e.getMessage(), origin);
+            redirectWithError(ctx, e.getMessage(), origin, popup);
 
         } catch (Exception e) {
             LoggerUtil.error("Unexpected error in X OAuth callback: " + e.getMessage());
-            redirectWithError(ctx, "An unexpected error occurred during authentication", origin);
+            redirectWithError(ctx, "An unexpected error occurred during authentication", origin, popup);
         }
     }
 
@@ -133,9 +139,16 @@ public class AuthController {
         // Read (and clear) the surface that started the login so both success and
         // error paths return there (e.g. /quick) instead of the legacy callback.
         String origin = consumeLoginOrigin(ctx);
+        boolean popup = consumeLoginPopup(ctx);
         try {
             if (!discordAuthService.isEnabled()) {
-                ctx.status(503).json(SharedErrorResponse.serverError("Discord login is not configured"));
+                redirectWithError(ctx, "Discord login is not configured", origin, popup);
+                return;
+            }
+
+            String providerError = ctx.queryParam("error");
+            if (providerError != null && !providerError.isBlank()) {
+                redirectWithError(ctx, providerError, origin, popup);
                 return;
             }
 
@@ -143,8 +156,7 @@ public class AuthController {
             String state = ctx.queryParam("state");
 
             if (code == null || state == null) {
-                ctx.status(400).json(SharedErrorResponse.badRequest(
-                    "Missing authorization code or state parameter"));
+                redirectWithError(ctx, "Missing authorization code or state parameter", origin, popup);
                 return;
             }
 
@@ -152,15 +164,15 @@ public class AuthController {
             User user = discordAuthService.handleCallback(code, state);
 
             // Complete authentication flow
-            completeAuthentication(ctx, user, "Discord", origin);
+            completeAuthentication(ctx, user, "Discord", origin, popup);
 
         } catch (OAuthBaseService.AuthenticationException e) {
             LoggerUtil.warn("Discord OAuth authentication failed: " + e.getMessage());
-            redirectWithError(ctx, e.getMessage(), origin);
+            redirectWithError(ctx, e.getMessage(), origin, popup);
 
         } catch (Exception e) {
             LoggerUtil.error("Unexpected error in Discord OAuth callback: " + e.getMessage());
-            redirectWithError(ctx, "An unexpected error occurred during authentication", origin);
+            redirectWithError(ctx, "An unexpected error occurred during authentication", origin, popup);
         }
     }
 
@@ -179,6 +191,10 @@ public class AuthController {
      * absent origins fall back to the React callback page.
      */
     private void completeAuthentication(Context ctx, User user, String provider, String origin) {
+        completeAuthentication(ctx, user, provider, origin, false);
+    }
+
+    private void completeAuthentication(Context ctx, User user, String provider, String origin, boolean popup) {
         // Generate JWT token for web session with admin status
         String token = jwtTokenService.generateToken(user, adminSecurityService);
         setAuthCookie(ctx, token);
@@ -193,7 +209,7 @@ public class AuthController {
 
         LoggerUtil.info("Successful " + provider + " login for user: " + user.getProviderUsername());
 
-        String redirectUrl = resolvePostLoginRedirect(origin, token);
+        String redirectUrl = resolvePostLoginRedirect(origin, token, popup);
         ctx.redirect(redirectUrl);
     }
 
@@ -202,8 +218,11 @@ public class AuthController {
      * prevent open-redirect abuse; the cookie is already set so no token needs
      * to ride in the URL for the quick surface.
      */
-    private String resolvePostLoginRedirect(String origin, String token) {
+    private String resolvePostLoginRedirect(String origin, String token, boolean popup) {
         if ("quick".equals(origin)) {
+            if (popup) {
+                return "/quick-auth?ok=1";
+            }
             return "/quick";
         }
         return "/auth/callback?token=" + token + "&success=true";
@@ -222,10 +241,19 @@ public class AuthController {
      * the React callback page.
      */
     private void redirectWithError(Context ctx, String errorMessage, String origin) {
+        redirectWithError(ctx, errorMessage, origin, false);
+    }
+
+    private void redirectWithError(Context ctx, String errorMessage, String origin, boolean popup) {
         String encoded = java.net.URLEncoder.encode(errorMessage, java.nio.charset.StandardCharsets.UTF_8);
-        String errorUrl = "quick".equals(origin)
-            ? "/quick?login_error=" + encoded
-            : "/auth/callback?success=false&error=" + encoded;
+        String errorUrl;
+        if ("quick".equals(origin)) {
+            errorUrl = popup
+                ? "/quick-auth?ok=0&error=" + encoded
+                : "/quick?login_error=" + encoded;
+        } else {
+            errorUrl = "/auth/callback?success=false&error=" + encoded;
+        }
         ctx.redirect(errorUrl);
     }
 
@@ -450,6 +478,7 @@ public class AuthController {
 
     /** Cookie that carries the originating surface across the OAuth round-trip. */
     private static final String LOGIN_ORIGIN_COOKIE = "dt_login_origin";
+    private static final String LOGIN_POPUP_COOKIE = "dt_login_popup";
     private static final int LOGIN_ORIGIN_MAX_AGE_SECONDS = 600; // 10 minutes
 
     /**
@@ -462,9 +491,15 @@ public class AuthController {
     private void rememberLoginOrigin(Context ctx) {
         String origin = ctx.queryParam("origin");
         if (!"quick".equals(origin)) {
+            clearLoginReturnCookies(ctx);
             return;
         }
         ctx.cookie(buildLoginOriginCookie(ctx, origin, LOGIN_ORIGIN_MAX_AGE_SECONDS));
+        if (isPopupLogin(ctx)) {
+            ctx.cookie(buildLoginPopupCookie(ctx, "1", LOGIN_ORIGIN_MAX_AGE_SECONDS));
+        } else {
+            ctx.cookie(buildLoginPopupCookie(ctx, "", 0));
+        }
     }
 
     /**
@@ -480,8 +515,34 @@ public class AuthController {
         return "quick".equals(origin) ? origin : null;
     }
 
+    private boolean consumeLoginPopup(Context ctx) {
+        String popup = ctx.cookie(LOGIN_POPUP_COOKIE);
+        ctx.cookie(buildLoginPopupCookie(ctx, "", 0));
+        return "1".equals(popup);
+    }
+
+    private boolean isPopupLogin(Context ctx) {
+        String popup = ctx.queryParam("popup");
+        return "1".equals(popup) || "true".equalsIgnoreCase(popup);
+    }
+
+    private void clearLoginReturnCookies(Context ctx) {
+        ctx.cookie(buildLoginOriginCookie(ctx, "", 0));
+        ctx.cookie(buildLoginPopupCookie(ctx, "", 0));
+    }
+
     private Cookie buildLoginOriginCookie(Context ctx, String value, int maxAgeSeconds) {
         Cookie cookie = new Cookie(LOGIN_ORIGIN_COOKIE, value);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setSecure("https".equalsIgnoreCase(ctx.scheme()));
+        cookie.setMaxAge(maxAgeSeconds);
+        cookie.setSameSite(SameSite.LAX);
+        return cookie;
+    }
+
+    private Cookie buildLoginPopupCookie(Context ctx, String value, int maxAgeSeconds) {
+        Cookie cookie = new Cookie(LOGIN_POPUP_COOKIE, value);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setSecure("https".equalsIgnoreCase(ctx.scheme()));
