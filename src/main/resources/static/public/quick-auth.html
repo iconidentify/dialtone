@@ -18,9 +18,9 @@
 <script>
 /*
  * OAuth popup landing page. The auth cookie is already set by the callback.
- * If we're the OAuth popup, tell the opener (the /quick page) and close - the
- * opener signs in inline, so no second emulator boots. If an older full-page
- * quick flow lands here, just go back to /quick.
+ * Tell the /quick page through every channel browsers still allow, then close.
+ * Never redirect this page to /quick: if the provider or COOP severs opener,
+ * booting a second emulator in the popup is worse than asking the user to close it.
  */
 (function () {
   "use strict";
@@ -34,20 +34,17 @@
 
   if (opener) {
     try { opener.postMessage(result, location.origin); } catch (e) {}
-    try { window.close(); } catch (e) {}
-    // If the browser refused to close the popup, don't boot an emulator here -
-    // just tell the user they can close it (the opener already signed them in).
-    setTimeout(function () {
-      var s = document.getElementById("spin"); if (s) s.style.display = "none";
-      document.getElementById("msg").textContent = ok
-        ? "You're signed in. You can close this window."
-        : "Sign-in didn't complete. You can close this window.";
-    }, 400);
-    return;
   }
 
-  // Full-page (non-popup) flow: return to /quick, carrying any error inline.
-  location.replace(ok ? "/quick" : ("/quick?login_error=" + encodeURIComponent(error || "Sign-in didn't complete")));
+  try { window.close(); } catch (e) {}
+  // If the browser refused to close the popup, don't boot an emulator here -
+  // just tell the user they can close it (the opener should pick up the cookie).
+  setTimeout(function () {
+    var s = document.getElementById("spin"); if (s) s.style.display = "none";
+    document.getElementById("msg").textContent = ok
+      ? "You're signed in. You can close this window."
+      : "Sign-in didn't complete. You can close this window.";
+  }, 400);
 })();
 </script>
 </body>
