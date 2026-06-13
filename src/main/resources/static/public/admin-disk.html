@@ -125,6 +125,20 @@
     return null;
   }
 
+  async function getCsrf(){
+    var r = await fetch("/api/csrf-token", { credentials:"include", headers:authHeaders({ "Cache-Control":"no-cache" }) });
+    if(!r.ok){ throw new Error("Could not get a security token ("+r.status+")"); }
+    return (await r.json()).token;
+  }
+
+  async function loadDiskConfig(){
+    var r = await fetch("/api/admin/disk/config", { credentials:"include", headers:authHeaders() });
+    if(!r.ok){ throw new Error(await readError(r, "Could not load disk config ("+r.status+")")); }
+    var d = await r.json();
+    if(d.macOrigin) MAC_ORIGIN = d.macOrigin;
+    if(d.defaultDiskName) DEFAULT_DISK = d.defaultDiskName;
+  }
+
   function renderNotAdmin(me){
     setCard(
       '<p class="eyebrow">Admin only</p>'+
@@ -156,11 +170,30 @@
   function showErr(msg){ var e=$("err"); if(e){ e.textContent=msg; e.style.display="block"; } }
 
   async function snapshot(){
-    // Admin-gated relay endpoint; token authorizes the write.
-    var url = MAC_ORIGIN + "/disk/snapshot?name=" + encodeURIComponent(DEFAULT_DISK);
-    var r = await fetch(url, { method:"POST", headers:{ "Authorization":"Bearer "+getCookie(COOKIE) } });
-    if(!r.ok){ throw new Error("Snapshot failed ("+r.status+")"); }
+    // Same-origin admin endpoint proxies to the emulator relay. This avoids
+    // browser CSP/CORS blocking while keeping the write admin-authenticated.
+    var csrf = await getCsrf();
+    var r = await fetch("/api/admin/disk/snapshot", {
+      method:"POST",
+      credentials:"include",
+      headers:authHeaders({ "X-CSRF-Token":csrf })
+    });
+    if(!r.ok){ throw new Error(await readError(r, "Snapshot failed ("+r.status+")")); }
     return await r.json().catch(function(){ return {}; });
+  }
+
+  async function readError(response, fallback){
+    try {
+      var d = await response.clone().json();
+      return (d && (d.message || d.error)) || fallback;
+    } catch(e) {
+      try {
+        var text = await response.text();
+        return text || fallback;
+      } catch(e2) {
+        return fallback;
+      }
+    }
   }
 
   function launchEmulator(){
@@ -208,6 +241,17 @@
     var me = null;
     try { me = await getMe(); } catch(e){}
     if(!me || !(me.isAdmin)){ renderNotAdmin(me); return; }
+    try { await loadDiskConfig(); }
+    catch(e) {
+      setCard(
+        '<p class="eyebrow">Admin disk</p>'+
+        '<h1>Could not load disk config</h1>'+
+        '<div class="err">'+(e && e.message ? e.message : "Disk config failed")+'</div>'+
+        '<button class="btn btn-primary" id="go-quick" type="button">Go to Dialtone</button>'
+      );
+      $("go-quick").addEventListener("click",function(){ location.href="/quick"; });
+      return;
+    }
     renderConfirm(me);
   }
 

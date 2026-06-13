@@ -15,6 +15,7 @@ import com.dialtone.web.api.AdminScreennameController;
 import com.dialtone.web.api.AdminAuditController;
 import com.dialtone.web.api.AdminSystemController;
 import com.dialtone.web.api.AdminFdoController;
+import com.dialtone.web.api.AdminDiskController;
 import com.dialtone.web.api.FileTransferController;
 import com.dialtone.fdo.FdoCompiler;
 import com.dialtone.protocol.xfer.XferService;
@@ -42,6 +43,7 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.staticfiles.Location;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
@@ -71,6 +73,7 @@ public class DialtoneWebServer {
     private final AdminAuditController adminAuditController;
     private final AdminSystemController adminSystemController;
     private final AdminFdoController adminFdoController;
+    private final AdminDiskController adminDiskController;
     private final FileTransferController fileTransferController;
     private final AdminAuthenticationFilter adminAuthFilter;
     private final CsrfProtectionService csrfService;
@@ -126,6 +129,7 @@ public class DialtoneWebServer {
         // Initialize FDO compiler for admin FDO workbench
         this.fdoCompiler = new FdoCompiler(config);
         this.adminFdoController = new AdminFdoController(adminSecurityService, adminAuditService, csrfService, fdoCompiler);
+        this.adminDiskController = new AdminDiskController(adminSecurityService, csrfService, config);
 
         // Initialize file transfer controller with XferService and FileStorage
         XferService xferService = new XferService(fdoCompiler);
@@ -363,6 +367,10 @@ public class DialtoneWebServer {
         // Admin FDO workbench routes
         app.get("/api/admin/fdo/connected-screennames", adminFdoController::getConnectedScreennames);
         app.post("/api/admin/fdo/send", adminFdoController::sendFdo);
+
+        // Admin writable disk routes
+        app.get("/api/admin/disk/config", adminDiskController::getConfig);
+        app.post("/api/admin/disk/snapshot", adminDiskController::snapshotDefaultDisk);
     }
 
     /**
@@ -390,7 +398,7 @@ public class DialtoneWebServer {
             if (isEmulatorPage) {
                 // CSP frame-src allowlists the emulator origin (X-Frame-Options has no
                 // per-source allowlist, so it is intentionally omitted for this page only).
-                ctx.header("Content-Security-Policy", "default-src 'self'; " + "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + "style-src 'self' 'unsafe-inline'; " + "img-src 'self' data:; " + "connect-src 'self'; " + "font-src 'self'; " + "frame-src https://mac.dialtone.live; " + "object-src 'none'; " + "base-uri 'self'");
+                ctx.header("Content-Security-Policy", "default-src 'self'; " + "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + "style-src 'self' 'unsafe-inline'; " + "img-src 'self' data:; " + "connect-src 'self'; " + "font-src 'self'; " + "frame-src https://mac.dialtone.live " + getConfiguredMacFrameOrigin() + "; " + "object-src 'none'; " + "base-uri 'self'");
                 // Cross-origin isolation required for the emulator's SharedArrayBuffer.
                 // mac.dialtone.live (same-site) sends COEP require-corp + CORP same-site.
                 ctx.header("Cross-Origin-Opener-Policy", "same-origin");
@@ -491,6 +499,24 @@ public class DialtoneWebServer {
         }
 
         return null;
+    }
+
+    private String getConfiguredMacFrameOrigin() {
+        String configured = config.getProperty("admin.disk.mac.origin", "https://mac.dialtone.live").trim();
+        try {
+            URI uri = URI.create(configured);
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                return "https://mac.dialtone.live";
+            }
+            StringBuilder origin = new StringBuilder(uri.getScheme()).append("://").append(uri.getHost());
+            if (uri.getPort() > 0) {
+                origin.append(':').append(uri.getPort());
+            }
+            return origin.toString();
+        } catch (IllegalArgumentException e) {
+            LoggerUtil.warn("Invalid admin.disk.mac.origin for CSP frame-src: " + configured);
+            return "https://mac.dialtone.live";
+        }
     }
 
     /**

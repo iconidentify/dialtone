@@ -115,6 +115,8 @@ admin.require.confirmation.for.destructive.actions=true
 admin.rate.limit.requests.per.minute=60
 admin.audit.log.retention.days=365
 admin.audit.log.max.entries=100000
+admin.disk.mac.origin=https://mac.dialtone.live
+admin.disk.default.name=default_system7-6-1.dsk
 
 # Email Authentication (Resend Magic Link)
 # Get an API key from https://resend.com/

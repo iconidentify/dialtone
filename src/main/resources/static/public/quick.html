@@ -12,9 +12,9 @@
    * Dialtone "quick" landing.
    * The Mac OS 7 / AOL 3.0 emulator (mac.dialtone.live) auto-boots and fills the
    * screen - the computer IS the page. A subtle sign-in line tucks under the
-   * Dialtone logo (top-left), showing the screen name once signed in; it expands
-   * into a compact card only when there's something to do (pick a screen name,
-   * send a file). Self-contained: no build step, talks to same-origin /api.
+   * Dialtone logo (top-left), showing signed-in state after auth; the account
+   * console opens separately for screen names and passwords. Self-contained: no
+   * build step, talks to same-origin /api.
    *
    * NOTE: the emulator only embeds on a *.dialtone.live origin (mac.dialtone.live
    * sends Cross-Origin-Resource-Policy: same-site). On other origins the boot
@@ -109,7 +109,8 @@
 
   /* The sign-in / status line sits directly under the wordmark (indented past
      the logo so it reads as one lockup). Subtle by default - the Mac is the star. */
-  #launcher { position: relative; padding-left: 36px; min-height: 17px; }
+  #accountbar { display: flex; align-items: center; gap: 8px; padding-left: 36px; min-height: 20px; }
+  #launcher { position: relative; min-height: 17px; }
   .signlink { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; cursor: pointer;
     font: inherit; font-size: 12px; font-weight: 600; color: var(--muted); padding: 1px 0; letter-spacing: 0.2px;
     transition: color 0.15s var(--ease); }
@@ -119,6 +120,14 @@
   .signlink:hover .arrow { transform: translateX(2px); }
   .signlink .mini-spin { width: 12px; height: 12px; border-radius: 50%;
     border: 2px solid rgba(255,255,255,0.18); border-top-color: var(--orange); animation: rot 0.8s linear infinite; }
+  .consolelink { display: none; align-items: center; gap: 5px; min-height: 20px;
+    padding: 3px 8px; border-radius: 999px; text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06);
+    color: var(--muted); font-size: 11px; font-weight: 700; line-height: 1;
+    transition: color 0.15s var(--ease), background 0.15s var(--ease), border-color 0.15s var(--ease); }
+  .consolelink.show { display: inline-flex; }
+  .consolelink:hover { color: var(--paper); background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.22); }
+  .consolelink svg { width: 11px; height: 11px; opacity: 0.8; flex: 0 0 auto; }
   /* signed-in: compact screen-name chip that opens the menu */
   .userchip { display: inline-flex; align-items: center; gap: 7px; border: 0; background: none; cursor: pointer;
     font: inherit; color: var(--paper); padding: 1px 0; max-width: 60vw; }
@@ -150,6 +159,7 @@
   .menu-sn-name { font-weight: 700; font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .menu-sn-tag { font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--orange);
     border: 1px solid rgba(252,157,44,0.4); border-radius: 999px; padding: 2px 7px; flex: 0 0 auto; }
+  .menu-empty { color: var(--muted); font-size: 12px; line-height: 1.4; padding: 3px 6px 7px; }
   .menu-sep { height: 1px; background: rgba(255,255,255,0.08); margin: 6px 6px; }
   .menu-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
     border: 0; background: none; color: var(--paper); font: inherit; font-size: 14px;
@@ -267,6 +277,7 @@
     #panel { left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%; }
     .card { border-radius: 22px 22px 0 0; padding: 22px 18px calc(20px + env(safe-area-inset-bottom)); max-height: 86vh; }
     #topleft { left: 12px; }
+    #accountbar { gap: 7px; }
     #menu { min-width: 220px; }
     .headline { font-size: 21px; }
   }
@@ -309,8 +320,14 @@
       <img src="/favicon.svg" alt="" />
       <span class="name">Dialtone<span class="dot">.</span></span>
     </a>
-    <!-- sign-in / status line (filled by JS) -->
-    <div id="launcher"><!-- filled by JS --></div>
+    <!-- sign-in / status line (filled by JS) + account console entry -->
+    <div id="accountbar">
+      <div id="launcher"><!-- filled by JS --></div>
+      <a id="console-link" class="consolelink" href="/dashboard" target="_blank" rel="noopener" title="Open account console">
+        Console
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>
+    </div>
   </div>
 
   <!-- Demo controls (?demo=1 / file://) -->
@@ -331,8 +348,8 @@
       <!-- sign in (choose a method) -->
       <div id="s-auth" hidden>
         <p class="eyebrow">No download required</p>
-        <h1 class="headline">Get a<br/>screen name</h1>
-        <p class="sub">Sign in to claim your screen name, then hop on the Mac. Pick whatever's easiest.</p>
+        <h1 class="headline">Sign in<br/>to Dialtone</h1>
+        <p class="sub">Sign in here, then keep using the Mac. Screen names and passwords live in your console.</p>
         <div class="err" id="err-auth"></div>
         <div class="stack" id="auth-methods">
           <button class="btn btn-x" id="auth-x" type="button">
@@ -467,7 +484,6 @@
     try { await fetch("/api/auth/logout", { method: "POST", credentials: "include", headers: authHeaders() }); } catch (e) {}
     document.cookie = COOKIE + "=; Max-Age=0; path=/";
   }
-  function nameOf(me) { return (me && (me.providerUsername || me.xUsername || me.username || me.displayName)) || "friend"; }
   function screennamesOf(me) {
     var raw = (me && (me.screennames || me.screen_names)) || [];
     return raw.map(function (s) { return typeof s === "string" ? { screenname: s } : s; });
@@ -542,9 +558,11 @@
 
   // ---- Launcher (sign-in line / screen-name status, under the logo) ---
   function setLauncher(html) { $("launcher").innerHTML = html; $("launcher").classList.remove("open"); menuOpen = false; }
+  function showConsoleLink(show) { $("console-link").classList.toggle("show", !!show); }
 
   function renderSignedOut() {
     hideCard();
+    showConsoleLink(false);
     setLauncher(
       '<button class="signlink" id="pill-signin" type="button">Sign in <span class="arrow">&rsaquo;</span></button>'
     );
@@ -553,42 +571,38 @@
 
   function renderSigningIn() {
     hideCard();
+    showConsoleLink(false);
     setLauncher('<span class="signlink muted"><span class="mini-spin"></span> Signing in&hellip;</span>');
   }
 
   function renderReady(me) {
     currentMe = me;
     hideCard();
+    showConsoleLink(true);
     var sns = screennamesOf(me);
-    var primary = sns[0] ? sns[0].screenname : nameOf(me);
-    var canAdd = sns.length < 2;
-    var snRows = sns.map(function (s, i) {
+    var snRows = sns.length ? sns.map(function (s, i) {
       return '<div class="menu-sn">' +
         '<span class="menu-sn-av">' + s.screenname.charAt(0).toUpperCase() + '</span>' +
         '<span class="menu-sn-name">' + s.screenname + '</span>' +
         (i === 0 && sns.length > 1 ? '<span class="menu-sn-tag">primary</span>' : '') +
       '</div>';
-    }).join('');
+    }).join('') : '<div class="menu-empty">Open the console to create a screen name.</div>';
     setLauncher(
       '<button class="userchip" id="pill-user" type="button" aria-haspopup="true">' +
-        '<span class="av">' + primary.charAt(0).toUpperCase() + '</span>' +
-        '<span class="sn">' + primary + '</span>' +
+        '<span class="av">&#10003;</span>' +
+        '<span class="sn">Signed in</span>' +
         '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>' +
       '</button>' +
       '<div id="menu" role="menu">' +
-        '<div class="menu-head"><div class="who">Signed in as @' + nameOf(me) + '</div></div>' +
+        '<div class="menu-head"><div class="who">Signed in</div></div>' +
         '<div class="menu-sns"><div class="menu-label">Your screen name' + (sns.length > 1 ? 's' : '') + '</div>' + snRows + '</div>' +
         '<div class="menu-sep"></div>' +
         '<button class="menu-item" id="mi-send" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Send a file to AOL</button>' +
-        (canAdd ? '<button class="menu-item" id="mi-add" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Create another screen name</button>' : '') +
-        '<button class="menu-item" id="mi-newtab" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open the Mac in a new tab</button>' +
         '<button class="menu-item danger" id="mi-signout" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>' +
       '</div>'
     );
     $("pill-user").addEventListener("click", toggleMenu);
     $("mi-send").addEventListener("click", function () { closeMenu(); openSend(); });
-    if (canAdd) $("mi-add").addEventListener("click", function () { closeMenu(); openAddScreenname(); });
-    $("mi-newtab").addEventListener("click", function () { window.open(MAC_URL, "_blank", "noopener"); closeMenu(); });
     $("mi-signout").addEventListener("click", function () { closeMenu(); doSignOut(); });
   }
 
@@ -601,9 +615,8 @@
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeMenu(); } });
 
-  // The OAuth popup (quick-auth.html) posts here when it finishes, so we sign in
-  // inline - the page (and its emulator) keep running, no reload, no second Mac.
-  // pollCookie remains a fallback for browsers that drop the message.
+  // Backward compatibility for old OAuth popup flows. Current /quick login uses
+  // a full-page redirect back here, but an already-open popup can still post this.
   window.addEventListener("message", function (e) {
     if (e.origin !== location.origin) return;
     var d = e.data;
@@ -622,9 +635,7 @@
   function route(me) {
     currentMe = me;
     if (!me) { renderSignedOut(); return; }
-    var sns = screennamesOf(me);
-    if (sns.length === 0) renderNeedScreenname(me);
-    else renderReady(me);
+    renderReady(me);
   }
 
   // If a magic link failed, it returns to /quick?login_error=...; surface it
@@ -671,20 +682,17 @@
     $("email").value = ""; validateEmail();
   }
 
-  // OAuth (X, Discord): popup + cookie poll, full-page redirect fallback.
+  // OAuth (X, Discord): full-page redirect back to /quick.
   function startOAuth(provider) {
     if (isDemo) { renderSigningIn(); setTimeout(function () { route(demoMe); }, 700); return; }
     // origin=quick so the provider callback returns here (not the legacy dashboard).
     var url = "/api/auth/" + provider + "/login?origin=quick";
-    var w = 520, h = 680, x = window.screenX + Math.max(0, (window.outerWidth - w) / 2), y = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
-    var popup = window.open(url, "dialtone_" + provider + "_login", "width=" + w + ",height=" + h + ",left=" + x + ",top=" + y);
-    if (!popup || popup.closed || typeof popup.closed === "undefined") { window.location.href = url; return; }
     renderSigningIn();
-    pollCookie(function () { try { popup.close(); } catch (e) {} }, function () { return popup.closed; });
+    window.location.href = url;
   }
 
-  // Poll for the auth cookie (set by OAuth popup or by clicking the email link
-  // in the same browser). onDone fires once the cookie appears.
+  // Poll for the auth cookie after an email magic link is clicked in the same
+  // browser. onDone fires once the cookie appears.
   function pollCookie(onCookie, isAbandoned) {
     clearInterval(pollTimer);
     var tries = 0;
@@ -734,12 +742,11 @@
   var addMode = false;
   function renderNeedScreenname(me) {
     addMode = false;
-    // New user, no screen name yet: clear the corner (no stuck "Signing in..."
-    // spinner) - the card itself shows who you're signed in as. The chip appears
-    // once a screen name exists.
+    // Legacy/demo screen-name form. The normal flow sends users to the console
+    // for screen-name setup and password changes.
     setLauncher("");
     showCard("s-needsn");
-    $("hi-user").textContent = "Signed in as @" + nameOf(me);
+    $("hi-user").textContent = "Signed in";
     $("s-needsn").querySelector(".headline").innerHTML = "Pick your<br/>screen name";
     $("signout-1").style.display = "";
     $("sn").value = ""; $("pw").value = ""; validateForm();
