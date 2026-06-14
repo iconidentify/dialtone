@@ -143,6 +143,40 @@ public class StatefulClientHandler extends ChannelInboundHandlerAdapter {
 
     private volatile long lastActivityNanos = System.nanoTime();
 
+    /*
+     * PERF/STABILITY: these are EXPENSIVE to construct (FdoCompiler spins up the
+     * whole FDO compilation service; the local storage opens the filesystem) and
+     * are STATELESS/thread-safe, so build them ONCE and share across all
+     * connections. Previously every connection - including the nginx ingress's
+     * ~1/sec TCP health-check probes on the P3 port - rebuilt them on the Netty
+     * event loop, thrashing the loop and bouncing real clients off. Lazy so the
+     * many overloaded test constructors that pass null props still work.
+     */
+    private static volatile FdoCompiler SHARED_FDO_COMPILER;
+    private static volatile com.dialtone.storage.impl.LocalFileSystemStorage SHARED_LOCAL_STORAGE;
+
+    private static FdoCompiler sharedFdoCompiler(Properties props) {
+        FdoCompiler c = SHARED_FDO_COMPILER;
+        if (c == null) {
+            synchronized (StatefulClientHandler.class) {
+                c = SHARED_FDO_COMPILER;
+                if (c == null) { c = new FdoCompiler(props); SHARED_FDO_COMPILER = c; }
+            }
+        }
+        return c;
+    }
+
+    private static com.dialtone.storage.impl.LocalFileSystemStorage sharedLocalStorage(Properties props) {
+        com.dialtone.storage.impl.LocalFileSystemStorage s = SHARED_LOCAL_STORAGE;
+        if (s == null) {
+            synchronized (StatefulClientHandler.class) {
+                s = SHARED_LOCAL_STORAGE;
+                if (s == null) { s = StorageFactory.createLocalStorage(props); SHARED_LOCAL_STORAGE = s; }
+            }
+        }
+        return s;
+    }
+
     public StatefulClientHandler(boolean verbose) {
         this(verbose, null, null, null, null);
     }
@@ -190,7 +224,7 @@ public class StatefulClientHandler extends ChannelInboundHandlerAdapter {
         configurePacerFromProperties(this.pacer, this.properties);
 
         // FDO / DOD / Services
-        this.fdoCompiler = new FdoCompiler(this.properties);
+        this.fdoCompiler = sharedFdoCompiler(this.properties);
         this.authenticator = buildAuthenticator(this.properties);
         final DatabaseManager dbManager = DatabaseManager.getInstance(getDbPath(this.properties));
         this.preferencesService = new ScreennamePreferencesService(dbManager);
@@ -231,7 +265,7 @@ public class StatefulClientHandler extends ChannelInboundHandlerAdapter {
 
         // File browser (needs direct LocalFileSystemStorage for directory browsing)
         this.fileBrowserService = new FileBrowserService(
-            StorageFactory.createLocalStorage(this.properties));
+            sharedLocalStorage(this.properties));
         this.fileBrowserHandler = new FileBrowserTokenHandler(
                 session, pacer, fdoCompiler, fileBrowserService, xferService, this.fileStorage);
 
