@@ -475,11 +475,26 @@
   var currentMe = null, menuOpen = false, accountState = "loading", authPopup = null;
 
   // ---- Emulator (auto-boot) -------------------------------------------
+  function emulatorOrigin() {
+    try { return new URL(MAC_URL, location.href).origin; } catch (ex) { return "*"; }
+  }
+  function postAccountStateToEmulator(state) {
+    var emu = $("emu");
+    if (!emu || !emu.contentWindow) return;
+    try {
+      emu.contentWindow.postMessage({
+        source: "dialtone-quick",
+        type: "dialtone:account-state",
+        state: state
+      }, emulatorOrigin());
+    } catch (ex) {}
+  }
   function bootEmulator() {
     var emu = $("emu"), loaded = false;
     if (isDemo) { setTimeout(function () { $("boot").classList.add("gone"); }, 1200); return; }
     emu.addEventListener("load", function () {
       loaded = true; emu.classList.add("loaded");
+      postAccountStateToEmulator(accountState);
       setTimeout(function () { $("boot").classList.add("gone"); focusEmulator(); }, 400);
       // If autofocus didn't land (e.g. parent kept focus), nudge the user.
       setTimeout(maybeShowTypeHint, 1600);
@@ -549,12 +564,23 @@
     accountState = state;
     var brand = $("brand");
     if (brand) brand.setAttribute("data-account-state", state);
+    postAccountStateToEmulator(state);
   }
   function setLauncher(html) { $("launcher").innerHTML = html; closeMenu(); }
   function showConsoleLink(show) { /* retained for older render paths; console now lives inside the logo menu */ }
   function openAccountDetail() {
     if (accountState === "ready") {
       toggleMenu();
+      return;
+    }
+    openAuthCard();
+    if (accountState === "signing") {
+      errBox("err-auth", "Finish sign-in in the popup. You'll return here automatically.");
+    }
+  }
+  function showAccountDetail() {
+    if (accountState === "ready") {
+      if (!menuOpen) toggleMenu();
       return;
     }
     openAuthCard();
@@ -615,6 +641,13 @@
     if (launcher) launcher.classList.remove("open");
     setBrandExpanded(false);
   }
+  function isTrustedAccountMessageOrigin(origin) {
+    if (origin === location.origin) return true;
+    try {
+      if (origin === new URL(MAC_URL, location.href).origin) return true;
+    } catch (ex) {}
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || "");
+  }
 
   // close menu on outside click / Esc
   document.addEventListener("click", function (e) {
@@ -644,6 +677,13 @@
     var d = e.data;
     if (!d || d.source !== "dialtone-auth") return;
     finishOAuthResult(d);
+  });
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || d.source !== "dialtone-68k-web") return;
+    if (!isTrustedAccountMessageOrigin(e.origin)) return;
+    if (d.type === "dialtone:open-account-menu") showAccountDetail();
+    else if (d.type === "dialtone:account-state-request") postAccountStateToEmulator(accountState);
   });
   window.addEventListener("storage", function (e) {
     if (e.key !== "dialtone_auth_result" || !e.newValue) return;
