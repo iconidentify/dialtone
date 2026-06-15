@@ -654,6 +654,11 @@
     } catch (ex) {}
     return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || "");
   }
+  function openTrustedExternalLink(href) {
+    if (href !== "https://x.com/SiliconForested") return;
+    var opened = window.open(href, "_blank", "noopener,noreferrer");
+    try { if (opened) opened.opener = null; } catch (ex) {}
+  }
 
   // close menu on outside click / Esc
   document.addEventListener("click", function (e) {
@@ -694,6 +699,7 @@
     if (!isTrustedAccountMessageOrigin(e.origin)) return;
     if (d.type === "dialtone:open-account-menu") showAccountDetail();
     else if (d.type === "dialtone:account-state-request") postAccountStateToEmulator(accountState);
+    else if (d.type === "dialtone:open-external-link") openTrustedExternalLink(d.href);
   });
   window.addEventListener("storage", function (e) {
     if (e.key !== "dialtone_auth_result" || !e.newValue) return;

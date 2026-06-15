@@ -196,6 +196,20 @@
     }
   }
 
+  function isTrustedEmulatorOrigin(origin) {
+    if (origin === location.origin) return true;
+    try {
+      if (origin === new URL(MAC_ORIGIN, location.href).origin) return true;
+    } catch (ex) {}
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || "");
+  }
+
+  function openTrustedExternalLink(href) {
+    if (href !== "https://x.com/SiliconForested") return;
+    var opened = window.open(href, "_blank", "noopener,noreferrer");
+    try { if (opened) opened.opener = null; } catch (ex) {}
+  }
+
   function launchEmulator(){
     var token = getCookie(COOKIE);
     var url = MAC_ORIGIN + "/?mode=disk-server&disk=" + encodeURIComponent(DEFAULT_DISK) +
@@ -235,6 +249,13 @@
       if(confirm("Did you shut the Mac down cleanly (Special > Shut Down)? Exit the writable session?")) location.href="/quick";
     });
   }
+
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || d.source !== "dialtone-68k-web") return;
+    if (!isTrustedEmulatorOrigin(e.origin)) return;
+    if (d.type === "dialtone:open-external-link") openTrustedExternalLink(d.href);
+  });
 
   async function boot(){
     bindToolbar();
